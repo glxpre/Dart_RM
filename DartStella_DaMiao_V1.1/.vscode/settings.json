@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "can_bsp.h": "c",
+        "dm4310_drv.h": "c"
+    }
+}

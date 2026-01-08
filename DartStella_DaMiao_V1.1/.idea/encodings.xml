@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/Core/Src/adc.c" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/User/Devices/BMI088/BMI088Middleware.c" charset="GB2312" />
+    <file url="file://$PROJECT_DIR$/User/Devices/BMI088/BMI088driver.c" charset="GB2312" />
+    <file url="file://$PROJECT_DIR$/User/Devices/LCD/lcd.c" charset="GB2312" />
+    <file url="file://$PROJECT_DIR$/User/Devices/LCD/lcdfont.h" charset="GB2312" />
+    <file url="file://$PROJECT_DIR$/User/Devices/WS2812/ws2812.c" charset="GB2312" />
+    <file url="file://$PROJECT_DIR$/User/bsp/can_bsp.c" charset="GB2312" />
+    <file url="file://$PROJECT_DIR$/User/bsp/flash/bsp_flash.c" charset="GB2312" />
+    <file url="file://$PROJECT_DIR$/modules/timer/timer.c" charset="GB2312" />
+  </component>
+</project>

@@ -1,0 +1,61 @@
+
+
+GraphedExpression="(INS).Roll", Color=#e56a6f, Show=0
+GraphedExpression="(INS).Pitch", Color=#35792b, Show=0
+GraphedExpression="(INS).Yaw", Color=#769dda
+GraphedExpression="(BMI088).TempWhenCali", Color=#b14f0d
+GraphedExpression="(BMI088).Temperature", Color=#b3c38e
+GraphedExpression="(BMI088).Gyro[0]", Color=#ab7b05, Show=0
+OpenDocument="motor_def.h", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/motor/motor_def.h", Line=39
+OpenDocument="main.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Core/Src/main.c", Line=79
+OpenDocument="tasks.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3633
+OpenDocument="robot_cmd.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/application/cmd/robot_cmd.c", Line=44
+OpenDocument="stm32h7xx_hal_uart.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c", Line=3838
+OpenDocument="stm32h7xx_hal_spi.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c", Line=3813
+OpenDocument="remote_control.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/remote/remote_control.c", Line=55
+OpenDocument="usart.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Core/Src/usart.c", Line=39
+OpenDocument="lcd.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/User/Devices/LCD/lcd.c", Line=63
+OpenDocument="bsp_usart.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/User/bsp/usart/bsp_usart.c", Line=57
+OpenDocument="stm32h7xx_hal_uart.h", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h", Line=0
+OpenDocument="robot_task.h", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/application/robot_task.h", Line=40
+OpenDocument="shoot.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/application/shoot/shoot.c", Line=55
+OpenDocument="startup_stm32h723vgtx.s", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Core/Startup/startup_stm32h723vgtx.s", Line=45
+OpenDocument="vision_transfer.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/referee/vision_transfer.c", Line=81
+OpenDocument="ins_task.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/imu/ins_task.c", Line=133
+OpenDocument="dmmotor.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/motor/DMmotor/dmmotor.c", Line=211
+OpenDocument="cmsis_gcc.h", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Drivers/CMSIS/Include/cmsis_gcc.h", Line=193
+OpenDocument="buzzer.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/alarm/buzzer.c", Line=14
+OpenDocument="stm32h7xx_hal.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c", Line=323
+OpenDocument="stm32h7xx_hal_dma.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c", Line=1192
+OpenDocument="stm32h7xx_it.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/Core/Src/stm32h7xx_it.c", Line=106
+OpenDocument="bsp_dwt.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/User/bsp/dwt/bsp_dwt.c", Line=54
+OpenDocument="BMI088Middleware.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/imu/BMI088Middleware.c", Line=0
+OpenDocument="chassis.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/application/chassis/chassis.c", Line=77
+OpenDocument="daemon.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/daemon/daemon.c", Line=0
+OpenDocument="robot.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/application/robot.c", Line=0
+OpenDocument="dji_motor.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/motor/DJImotor/dji_motor.c", Line=0
+OpenDocument="kalman_filter.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/modules/algorithm/kalman_filter.c", Line=362
+OpenDocument="gimbal.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/application/gimbal/gimbal.c", Line=102
+OpenDocument="bsp_can.c", FilePath="E:/KAIFABAN/stm32/CtrlBoard_H7_4310_25_9_10/User/bsp/can/bsp_can.c", Line=54
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Source Files", DockArea=RIGHT, x=0, y=0, w=1113, h=223, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=2, w=1113, h=187, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Memory 1", DockArea=BOTTOM, x=0, y=0, w=388, h=168, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, EditorAddress=0x1EB85B10
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=905, h=1025, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Terminal", DockArea=LEFT, x=0, y=0, w=905, h=470, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=RIGHT, x=0, y=1, w=1113, h=186, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=RIGHT, x=0, y=3, w=1113, h=897, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="1 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="494;19", DataGraphShowNamesAtCursor=0, PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="436;0", CodeGraphLegendShown=0, CodeGraphLegendPosition="456;0"
+OpenWindow="Console", DockArea=BOTTOM, x=1, y=0, w=2598, h=168, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+SmartViewPlugin="", Page="", Toolbar="Hidden", Window="SmartView 1"
+TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["File";"Status";"Size";"#Insts";"Path"], ColWidths=[263;100;66;67;1184]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" (INS).Roll";" (INS).Pitch";" (INS).Yaw";" (BMI088).TempWhenCali";" (BMI088).Temperature";" (BMI088).Gyro[0]"], ColWidths=[100;100;100;100;100;100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Type", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[380;100;157;135;124;157;130;150;150]
+TableHeader="Power Sampling", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;241]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Refresh"], ColWidths=[274;331;155;115]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;100;100;1636]
+WatchedExpression="dji_motor.c::sender_assignment", RefreshRate=5, Window=Watched Data 1
+WatchedExpression="dji_motor.c::sender_enable_flag", RefreshRate=2, Window=Watched Data 1
+WatchedExpression="motor_rb", RefreshRate=2, Window=Watched Data 1
+WatchedExpression="loader", RefreshRate=2, Window=Watched Data 1
+WatchedExpression="yaw_motor", RefreshRate=2, Window=Watched Data 1
