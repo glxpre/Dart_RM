@@ -76,6 +76,8 @@ void C_with_StellaSensorBoard_Task(void) {
     momokaSendInfo.Liyuu_pos = ((int)Liyuu_map->measure.total_angle)/50;
     momokaSendInfo.yaw_pos = ((int)yaw_map->measure.total_angle)/50;
     momokaSendInfo.dart_flag_map = dart_order;
+    SlaveDSendInfo.Shoot_Force_Init = 123;
+    Slave_Send((uint8_t *)&SlaveDSendInfo);
     if (global->auto_shoot_ready_flag) {
         momokaSendInfo.ready_flag = 1;
     }

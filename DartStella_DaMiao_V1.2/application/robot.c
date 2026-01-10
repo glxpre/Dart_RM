@@ -54,6 +54,7 @@ void RobotInit()
     GimbalInit();
     ShootInit();
     C_with_StellaSensorBoard_Init();
+    AutoAim_Init();
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)
@@ -73,7 +74,7 @@ void RobotTask()
     GimbalTask();
     ShootTask();
     C_with_StellaSensorBoard_Task();
-
+    AutoAim_Task();
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)

@@ -25,14 +25,12 @@ osThreadId robotTaskHandle;
 osThreadId motorTaskHandle;
 osThreadId daemonTaskHandle;
 osThreadId uiTaskHandle;
-osThreadId autoaimTaskHandle;
 
 // void StartINSTASK(void const *argument);
 void StartMOTORTASK(void const *argument);
 void StartDAEMONTASK(void const *argument);
 void StartROBOTTASK(void const *argument);
 void StartUITASK(void const *argument);
-void StartAUTOAIMTASK(void const *argument);
 
 /**
  * @brief 初始化机器人任务,所有持续运行的任务都在这里初始化
@@ -55,11 +53,6 @@ void OSTaskInit()
 
     osThreadDef(uitask, StartUITASK, osPriorityNormal, 0, 512);
     uiTaskHandle = osThreadCreate(osThread(uitask), NULL);
-
-    osThreadDef(autoaimtask, StartAUTOAIMTASK, osPriorityNormal, 0, 512);
-    autoaimTaskHandle = osThreadCreate(osThread(autoaimtask), NULL);
-
-
     // HTMotorControlInit(); // 没有注册HT电机则不会执行
 }
 
@@ -154,18 +147,3 @@ __attribute__((noreturn)) void StartUITASK(void const *argument)
     }
 }
 
-__attribute__((noreturn)) void StartAUTOAIMTASK(void const *argument)
-{
-    static float autoaim_dt;
-    static float autoaim_start;
-    LOGINFO("[freeRTOS] AUTOAIM core Task Start");
-    for (;;)
-    {
-        autoaim_start = DWT_GetTimeline_ms();
-        AutoAim_Task();
-        autoaim_dt = DWT_GetTimeline_ms() - autoaim_start;
-        if (autoaim_dt > 5)
-            LOGERROR("[freeRTOS] AUTOAIM core Task is being DELAY! dt = [%f]", &autoaim_dt);
-        osDelay(5);
-    }
-}

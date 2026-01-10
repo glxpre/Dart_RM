@@ -22,9 +22,6 @@
 #include "rm_referee.h"
 
 #include "robot.h"
-// 私有宏,自动将编码器转换成角度值
-#define YAW_ALIGN_ANGLE (YAW_CHASSIS_ALIGN_ECD * ECD_ANGLE_COEF_DJI) // 对齐时的角度,0-360
-#define PTICH_HORIZON_ANGLE (PITCH_HORIZON_ECD * ECD_ANGLE_COEF_DJI) // pitch水平时电机的角度,0-360
 
 /* cmd应用包含的模块实例指针和交互信息存储*/
 #ifdef GIMBAL_BOARD // 对双板的兼容,条件编译
@@ -108,6 +105,7 @@ static void RemoteControlSet() {
         shoot_cmd_send.stella_mode =Enable;
         shoot_cmd_send.trigger_mode=allow_fire,
         shoot_cmd_send.liyuu_=Speed_Control;
+        shoot_cmd_send.reload_mode = Reload_enable;
         // 云台参数,确定云台控制数据
         // 左侧开关状态为[中]
         if (switch_is_mid(rc_data[TEMP].rc.switch_left))
@@ -213,6 +211,7 @@ static void EmergencyHandler() {
         shoot_cmd_send.trigger_mode=allow_fire,
         //shoot_cmd_send.shoot_mode=fire;
         shoot_cmd_send.liyuu_=Speed_Control;
+        shoot_cmd_send.reload_mode = Reload_enable;
 
 
         //shoot_cmd_send.trigger_mode=fire;

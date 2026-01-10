@@ -148,7 +148,7 @@ VT_ctrl_t *VTRefereeInit(UART_HandleTypeDef *vt_usart_handle)
     };
     vision_transfer_daemon = DaemonRegister(&daemon_conf);
 
-    return &vt_ctrl;
+    return vt_ctrl;
 }
 
 /**

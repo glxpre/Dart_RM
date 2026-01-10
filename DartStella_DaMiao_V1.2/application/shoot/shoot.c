@@ -176,7 +176,7 @@ void ShootTask()
     //从cmd获取控制数据
     SubGetMessage(shoot_sub, &shoot_cmd_recv);
     //扳机角度设置
-    Servo_Motor_FreeAngle_Set(Trigger,30+shoot_cmd_recv.Trigger_Location);
+    Servo_Motor_FreeAngle_Set(Trigger,40+1.6*shoot_cmd_recv.Trigger_Location);
     //头上丝杆
     if (shoot_cmd_recv.liyuu_==Liyuu_DISABLE)
         DJIMotorStop(Liyuu);
@@ -215,6 +215,9 @@ void ShootTask()
     }
 
     //换弹检测逻辑
+    if (shoot_cmd_recv.reload_mode == Reload_disable) {
+        DJIMotorStop(Reload);
+    }
     if (shoot_cmd_recv.reload!=reload_flag) {
         dart_order += 1;
         if (dart_order > 4) {

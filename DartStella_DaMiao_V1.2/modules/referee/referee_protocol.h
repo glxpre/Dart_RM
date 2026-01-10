@@ -18,7 +18,7 @@
 #define REFEREE_SOF 0xA5 // 起始字节,协议固定为0xA5
 #define Robot_Red 0
 #define Robot_Blue 1
-#define Communicate_Data_LEN 5 // 自定义交互数据长度，该长度决定了我方发送和他方接收，自定义交互数据协议更改时只需要更改此宏定义即可
+#define Communicate_Data_LEN 30 // 自定义交互数据长度，该长度决定了我方发送和他方接收，自定义交互数据协议更改时只需要更改此宏定义即可
 
 #pragma pack(1)
 
