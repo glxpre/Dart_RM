@@ -1,7 +1,11 @@
 #ifndef ROBOT_H
 #define ROBOT_H
-
+#include <stdint.h>
 /* Robot利用robot_def.h中的宏对不同的机器人进行了大量的兼容,同时兼容了两个开发板(云台板和底盘板)的配置 */
+/**
+ * @brief 镖架全局状态标志位操作
+ *
+ */
 typedef struct {
     uint8_t fuck_them_all;
     uint8_t auto_shoot_begin_flag;  //全自动发射介入
@@ -10,6 +14,9 @@ typedef struct {
     uint8_t auto_shoot_ready_flag;  //滑台复位标志位
     uint8_t auto_shoot_end_flag;  //发射完毕标志位
 }global_struct;
+
+global_struct *get_global(void);
+void reset_global(void);
 /**
  * @brief 机器人初始化,请在开启rtos之前调用.这也是唯一需要放入main函数的函数
  *
@@ -21,7 +28,5 @@ void RobotInit();
  *
  */
 void RobotTask();
-void reset_global();
-global_struct *get_global();
 
 #endif

@@ -64,7 +64,8 @@ FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 1024K
 }
 
 /* Highest address of the user mode stack */
-_estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);    /* end of RAM */
+_estack = ORIGIN(DTCMRAM) + LENGTH(DTCMRAM);
+_heap_limit = ORIGIN(RAM_D1) + LENGTH(RAM_D1);  /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x5120;      /* required amount of heap  */
 _Min_Stack_Size = 0x5120; /* required amount of stack */
@@ -224,6 +225,14 @@ SECTIONS
     __bss_end__ = _ebss;
       PROVIDE( __bss_end = .);
   } >RAM_D1
+
+  .dtcm_vars (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.dtcm_vars)
+    . = ALIGN(4);
+  } >DTCMRAM
+
   PROVIDE( __non_tls_bss_start = ADDR(.bss) );
 
   PROVIDE( __bss_start = __tbss_start );

@@ -16,17 +16,17 @@
 #include "shoot.h"
 #include "robot_cmd.h"
 #endif
-static global_struct global;
 
+static global_struct global;  //镖架全局状态标志位
 global_struct *get_global(void) {
     return &global;
 }
 void reset_global(void) {
     global.auto_shoot_begin_flag = 0;
-    global.auto_shoot_end_flag = 0;
     global.auto_shoot_set_flag = 0;
     global.auto_shoot_process_flag = 0;
     global.auto_shoot_ready_flag = 0;
+    // global.auto_shoot_end_flag = 0;
     global.fuck_them_all = 0;
 }
 
@@ -54,7 +54,6 @@ void RobotInit()
     GimbalInit();
     ShootInit();
     C_with_StellaSensorBoard_Init();
-    AutoAim_Init();
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)
@@ -74,7 +73,7 @@ void RobotTask()
     GimbalTask();
     ShootTask();
     C_with_StellaSensorBoard_Task();
-    AutoAim_Task();
+    // AutoAim_Task();
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)

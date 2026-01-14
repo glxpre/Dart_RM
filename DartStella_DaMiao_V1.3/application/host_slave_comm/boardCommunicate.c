@@ -24,7 +24,7 @@ static DJIMotorInstance *Liyuu_map; // 头上丝杆电机
 static DJIMotorInstance *yaw_map; // yaw电机
 
 extern uint8_t dart_order;  //镖镖序号（外部定义）
-static global_struct *global;
+static global_struct *global_map;
 
 momoka_Send_info_t *get_momokaSend() {
     return &momokaSendInfo;
@@ -45,7 +45,7 @@ void C_with_StellaSensorBoard_Init(void) {
     };
     momokaComm = uartcommInit(&config1);     //把接收到的解包数据cast为标准消息类型
     slaveComm = HostInit();
-    global=get_global();  //获取全局发射标志
+    global_map=get_global();  //获取全局发射标志
     Liyuu_map = (DJIMotorInstance *)get_Liyuu();
     yaw_map = (DJIMotorInstance *)get_yaw();
     // CANComm_Init_Config_s comm_config={
@@ -78,15 +78,12 @@ void C_with_StellaSensorBoard_Task(void) {
     momokaSendInfo.dart_flag_map = dart_order;
     SlaveDSendInfo.Shoot_Force_Init = 123;
     Slave_Send((uint8_t *)&SlaveDSendInfo);
-    if (global->auto_shoot_ready_flag) {
-        momokaSendInfo.ready_flag = 1;
-    }
     uartcommSendData((uint8_t *)&momokaSendInfo);
 
     //数据更新检测
     momokaRecInfo=*(momoka_Rec_info_t *)uart_sensor_CommGet();
     if (momokaRecInfo.cmdID == ShootNow) {
-        global->fuck_them_all=1;
+        global_map->fuck_them_all=1;
     }
     if (slaveComm->update_flag) {
         SlaveDRecInfo=*(SlaveD_Rec_info_t *)uart_slave_CommGet();

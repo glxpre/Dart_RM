@@ -14,7 +14,7 @@ set(SIZE arm-none-eabi-size)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # project settings
-project(STM32H7DaMiao_CMAKE_1 C CXX ASM)
+project(Dart_STM32H7 C CXX ASM)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
@@ -91,7 +91,6 @@ include_directories(
         Middlewares/ST/ARM/DSP/Inc
         USB_DEVICE/App
         USB_DEVICE/Target
-        #        User/bsp/usart
 )
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32H723xx)
@@ -113,8 +112,6 @@ file(GLOB_RECURSE SOURCES
 )
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32H723VGTX_FLASH.ld)
-
-
 
 
 add_link_options(-Wl,-gc-sections,--print-memory-usage,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)

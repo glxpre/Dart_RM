@@ -43,6 +43,8 @@
 #include <stm32h723xx.h>
 #include <stm32h7xx_hal_rcc.h>
 
+#include "auto_aim.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -143,6 +145,7 @@ int main(void)
   // HAL_ADC_Start_DMA(&hadc1,(uint32_t *)adc_value,2);
 
 	RobotInit(); // 唯一的初始化函数
+  AutoAim_Init();
 	LOGINFO("[main] SystemInit() and RobotInit() done");
 
 

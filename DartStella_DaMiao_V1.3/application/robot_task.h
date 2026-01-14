@@ -4,7 +4,6 @@
 #include "auto_aim.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "main.h"
 #include "cmsis_os.h"
 
 #include "robot.h"
@@ -17,7 +16,6 @@
 #include "buzzer.h"
 
 #include "bsp_log.h"
-#include "lcd.h"
 #include "tft.h"
 
 osThreadId insTaskHandle;
@@ -25,12 +23,14 @@ osThreadId robotTaskHandle;
 osThreadId motorTaskHandle;
 osThreadId daemonTaskHandle;
 osThreadId uiTaskHandle;
+osThreadId AutoAimHandle;
 
 // void StartINSTASK(void const *argument);
 void StartMOTORTASK(void const *argument);
 void StartDAEMONTASK(void const *argument);
 void StartROBOTTASK(void const *argument);
 void StartUITASK(void const *argument);
+void StartAUTOAIMTASK(void const *argument);
 
 /**
  * @brief 初始化机器人任务,所有持续运行的任务都在这里初始化
@@ -53,6 +53,9 @@ void OSTaskInit()
 
     osThreadDef(uitask, StartUITASK, osPriorityNormal, 0, 512);
     uiTaskHandle = osThreadCreate(osThread(uitask), NULL);
+
+    osThreadDef(autoaimtask, StartAUTOAIMTASK, osPriorityNormal, 0, 512);
+    AutoAimHandle = osThreadCreate(osThread(autoaimtask), NULL);
     // HTMotorControlInit(); // 没有注册HT电机则不会执行
 }
 
@@ -144,6 +147,24 @@ __attribute__((noreturn)) void StartUITASK(void const *argument)
         //UITask();
         tft_ui_task();
         osDelay(5); // 即使没有任何UI需要刷新,也挂起一次,防止卡在UITask中无法切换
+    }
+}
+
+__attribute__((noreturn)) void StartAUTOAIMTASK(void const *argument)
+{
+    static float autoaim_dt;
+    static float autoaim_start;
+    LOGINFO("[freeRTOS] AutoAIm Task Start");
+    // 200Hz-500Hz,若有额外的控制任务如平衡步兵可能需要提升至1kHz
+    for (;;)
+    {
+        autoaim_start = DWT_GetTimeline_ms();
+        AutoAim_Task();
+        autoaim_dt = DWT_GetTimeline_ms() - autoaim_start;
+        if (autoaim_dt > 5) {
+            LOGERROR("[freeRTOS] ROBOT core Task is being DELAY! dt = [%f]", &autoaim_dt);
+        };
+        osDelay(5);
     }
 }
 

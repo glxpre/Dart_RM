@@ -34,6 +34,7 @@ static RC_ctrl_t *rc_data;                // 遥控器数据,初始化时返回
 
 static Publisher_t *gimbal_cmd_pub;            // 云台控制消息发布者
 static Subscriber_t *gimbal_feed_sub;          // 云台反馈信息订阅者
+// static Subscriber_t *auto_gimbal_feed_sub;          // 云台反馈信息订阅者
 static Gimbal_Ctrl_Cmd_s gimbal_cmd_send;      // 传递给云台的控制信息
 static Gimbal_Upload_Data_s gimbal_fetch_data; // 从云台获取的反馈信息
 
@@ -46,7 +47,7 @@ static Robot_Status_e robot_state; // 机器人整体工作状态
 
 static referee_info_t *referee_data; // 用于获取裁判系统的数据
 
-static global_struct *global;
+static global_struct *global_map;
 // extern CANCommInstance *Cboard_can_comm;
 //发送数据
 static momoka_Send_info_t *momokaSendInfo;
@@ -58,7 +59,8 @@ static uint8_t auto_flag = 1;    //自动发射介入标志位，1为介入
 static uint8_t end_flag = 1;
 
 void RobotCMDInit() {
-    global=get_global();
+    global_map=get_global();
+    global_map->auto_shoot_end_flag = 1;
     momokaSendInfo=get_momokaSend();
     rc_data = RemoteControlInit(&huart5);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
     // vision_recv_data = VisionInit(); // 视觉通信串口
@@ -68,6 +70,7 @@ void RobotCMDInit() {
 
     gimbal_cmd_pub = PubRegister("gimbal_cmd", sizeof(Gimbal_Ctrl_Cmd_s));
     gimbal_feed_sub = SubRegister("gimbal_feed", sizeof(Gimbal_Upload_Data_s));
+    // auto_gimbal_feed_sub = SubRegister("auto_gimbal_cmd", sizeof(Subscriber_t));
     shoot_cmd_pub = PubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
     shoot_feed_sub = SubRegister("shoot_feed", sizeof(Shoot_Upload_Data_s));
 
@@ -93,6 +96,7 @@ static void RemoteControlSet() {
     if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下]，修改发射时拉力
     {
         reset_global();
+        shoot_cmd_send.auto_mode = AUTO_OFF;
         momokaSendInfo->cmdID = Shoot_Force_change;
         momokaSendInfo->CMD_data = rc_data[TEMP].rc.rocker_r1+5*rc_data[TEMP].rc.rocker_l1 ;  //左边杆高灵敏度，右边杆低灵敏度
         uartcommSendData((uint8_t *)&momokaSendInfo);
@@ -102,16 +106,17 @@ static void RemoteControlSet() {
     else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中]，手动模式
     {
         reset_global();
-        shoot_cmd_send.stella_mode =Enable;
-        shoot_cmd_send.trigger_mode=allow_fire,
-        shoot_cmd_send.liyuu_=Speed_Control;
-        shoot_cmd_send.reload_mode = Reload_enable;
+        shoot_cmd_send.auto_mode = AUTO_OFF;
+        // shoot_cmd_send.stella_mode =Enable;
+        // shoot_cmd_send.trigger_mode=allow_fire,
+        // shoot_cmd_send.liyuu_=Speed_Control;
+        // shoot_cmd_send.reload_mode = Reload_enable;
         // 云台参数,确定云台控制数据
         // 左侧开关状态为[中]
         if (switch_is_mid(rc_data[TEMP].rc.switch_left))
         {
             //
-            shoot_cmd_send.Stella_speed = -20.0f * ((float) rc_data[TEMP].rc.rocker_l1 / 660);
+            shoot_cmd_send.Stella_speed = -25.0f * ((float) rc_data[TEMP].rc.rocker_l1 / 660);
             shoot_cmd_send.Liyuu_speed= 30000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);
             shoot_cmd_send.Trigger_Location=(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
         }
@@ -136,14 +141,15 @@ static void RemoteControlSet() {
         uartcommSendData((uint8_t *)&momokaSendInfo);
 
         gimbal_cmd_send.gimbal_mode = GIMBAL_VISION_MODE;
+        shoot_cmd_send.auto_mode = AUTO_ON;
         shoot_cmd_send.liyuu_=Speed_Control;
         shoot_cmd_send.Liyuu_speed= 30000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);  //调整丝杆
 
         // CANCommSend(Cboard_can_comm , (uint8_t *)momokaSendInfo);
         //向上拨拨轮，进入全自动模式
         if ((-(float)rc_data[TEMP].rc.dial / 660) > 0.5f && auto_flag) {
-            global->auto_shoot_begin_flag = 1;
-            global->auto_shoot_set_flag = 1;
+            global_map->auto_shoot_begin_flag = 1;
+            global_map->auto_shoot_set_flag = 1;
             auto_flag = 0;
         }
         else if ((-(float)rc_data[TEMP].rc.dial / 660)<0.5f) {
@@ -151,29 +157,29 @@ static void RemoteControlSet() {
         }
         //下一次自动发射标志
         if ((float) rc_data[TEMP].rc.rocker_l1 / 660 > 0.8 && end_flag) {
-            global->auto_shoot_end_flag = 1;
+            global_map->auto_shoot_end_flag = 1;
             end_flag = 0;
         }
         else if ((float) rc_data[TEMP].rc.rocker_l1 / 660 < 0.8) {
             end_flag = 1;
         }
         //检测拉力值是否进入范围
-        if (global->auto_shoot_ready_flag) {
+        if (global_map->auto_shoot_ready_flag) {
             momokaSendInfo->ready_flag = 1;
             uartcommSendData((uint8_t *)&momokaSendInfo);
-            if (global->fuck_them_all) {
+            if (global_map->fuck_them_all) {
                 shoot_cmd_send.Trigger_Location=80.0f;
-            }
-            if (global->auto_shoot_end_flag) {
-                shoot_cmd_send.Trigger_Location=0.0f;
-                global->fuck_them_all = 0;
-                global->auto_shoot_ready_flag = 0;
-                // global->auto_shoot_end_flag = 0;
-                global->auto_shoot_set_flag = 1;
-                shoot_cmd_send.reload=!shoot_cmd_send.reload;
+                if (global_map->auto_shoot_end_flag) {
+                    shoot_cmd_send.Trigger_Location=0.0f;
+                    global_map->fuck_them_all = 0;
+                    global_map->auto_shoot_ready_flag = 0;
+                    // global->auto_shoot_end_flag = 0;
+                    global_map->auto_shoot_set_flag = 1;
+                    shoot_cmd_send.reload=!shoot_cmd_send.reload;
+                }
             }
         }
-        else if (global->auto_shoot_ready_flag == 0) {
+        else if (global_map->auto_shoot_ready_flag == 0) {
             momokaSendInfo->ready_flag = 0;
             uartcommSendData((uint8_t *)&momokaSendInfo);
         }
@@ -194,13 +200,11 @@ static void EmergencyHandler() {
     {
         robot_state = ROBOT_STOP;
         gimbal_cmd_send.gimbal_mode = GIMBAL_ZERO_FORCE;
-        //chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
         shoot_cmd_send.stella_mode = Lost_Control;
         shoot_cmd_send.liyuu_=Liyuu_DISABLE;
         shoot_cmd_send.trigger_mode=disable;
         shoot_cmd_send.reload_mode=Reload_disable;
 
-        //shoot_cmd_send.loader_mode = LOAD_STOP;
         LOGERROR("[CMD] emergency stop!");
     }
     // 遥控器左侧开关为[上],恢复正常运行
@@ -213,10 +217,6 @@ static void EmergencyHandler() {
         shoot_cmd_send.liyuu_=Speed_Control;
         shoot_cmd_send.reload_mode = Reload_enable;
 
-
-        //shoot_cmd_send.trigger_mode=fire;
-        //shoot_cmd_send.shoot_mode = SHOOT_ON;
-        //gimbal_cmd_send.yaw = gimbal_fetch_data.gimbal_imu_data.YawTotalAngle;
         LOGINFO("[CMD] reinstate, robot ready");
     }
 }
@@ -224,9 +224,6 @@ static void EmergencyHandler() {
 /* 机器人核心控制任务,200Hz频率运行(必须高于视觉发送频率) */
 void RobotCMDTask() {
     // 从其他应用获取回传数据
-#ifdef ONE_BOARD
-    //SubGetMessage(chassis_feed_sub, (void *) &chassis_fetch_data);
-#endif // ONE_BOARD
 #ifdef GIMBAL_BOARD
     //chassis_fetch_data = *(Chassis_Upload_Data_s *)CANCommGet(cmd_can_comm);
 #endif // GIMBAL_BOARD

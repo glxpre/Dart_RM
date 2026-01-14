@@ -264,11 +264,19 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   */
 static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
 {
-  /* USER CODE BEGIN 11 */
+  /* 保存接收到的数据长度 */
+  uint16_t data_len = *Len;
+
+  /* 调用回调函数通知上层应用 */
+  if (rx_cbk != NULL) {
+    rx_cbk(data_len);  // 通知应用层有数据到达
+  }
+
+  /* 重新设置缓冲区并准备接收下一个数据包 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceHS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceHS);
+
   return (USBD_OK);
-  /* USER CODE END 11 */
 }
 
 /**

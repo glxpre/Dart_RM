@@ -126,6 +126,13 @@ typedef enum
     GIMBAL_FREE_MODE,      // 镖架遥控速控模式
     GIMBAL_VISION_MODE,      //镖架视觉&裁判系统控制模式
 } gimbal_mode_e;
+
+//自动模式开关
+typedef enum {
+    AUTO_OFF = 0,
+    AUTO_ON,
+} auto_mode_e;
+
 typedef enum {
     Enable=0,
     Lost_Control ,//直接下电
@@ -209,14 +216,11 @@ typedef struct
     chassis_mode_e chassis_mode;
     // int chassis_speed_buff;
 
-    // uint16_t chassis_power_limit;
-    // uint16_t buffer_energy;
+
     uint16_t buffer_supercap;
-    // uint8_t chassic_flag;
     // UI部分
     //  ...
     friction_mode_e friction_mode;
-    heat_mode_e heat_mode;
     uint8_t suggest_fire;
     uint8_t ui_updata;
 } Chassis_Ctrl_Cmd_s;
@@ -241,6 +245,8 @@ typedef struct
     LiyuuMode liyuu_;//储能2006模式，用于急停
     Trigger_mode trigger_mode;//扳机模式，用于急停
     Reload_mode reload_mode; //换弹，用于急停
+    auto_mode_e auto_mode;
+
 
     float Stella_speed;
     float Liyuu_speed;

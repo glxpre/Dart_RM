@@ -4,8 +4,9 @@
 
 #ifndef AUTO_AIM_H
 #define AUTO_AIM_H
-
+#include "robot.h"
 
 void AutoAim_Init();
 void AutoAim_Task();
+
 #endif //AUTO_AIM_H
