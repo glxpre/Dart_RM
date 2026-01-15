@@ -134,8 +134,8 @@ typedef enum {
 } auto_mode_e;
 
 typedef enum {
-    Enable=0,
-    Lost_Control ,//直接下电
+    Lost_Control=0,//直接下电
+    Enable ,
     Holding_Position_V,//位控保位
     Holding_Velocity_Angle,
 
@@ -154,7 +154,6 @@ typedef enum
 typedef enum
 {
     disable=0,
-    hold_fire ,
     allow_fire,
 } Trigger_mode;
 

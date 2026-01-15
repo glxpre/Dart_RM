@@ -43,7 +43,7 @@
 #include <stm32h723xx.h>
 #include <stm32h7xx_hal_rcc.h>
 
-#include "auto_aim.h"
+#include "auto_routine.h"
 
 /* USER CODE END Includes */
 

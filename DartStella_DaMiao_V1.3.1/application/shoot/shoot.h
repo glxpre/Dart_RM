@@ -13,5 +13,6 @@ void ShootInit();
  */
 void ShootTask();
 void *get_Liyuu(void);
+void *get_Stella(void);
 
 #endif // SHOOT_H

@@ -10,7 +10,7 @@
 #include "ins_task.h"
 #include "message_center.h"
 #include "dji_motor.h"
-#include "auto_aim.h"
+#include "auto_routine.h"
 #include "super_cap.h"
 
 // bsp
@@ -60,7 +60,7 @@ static uint8_t end_flag = 1;
 
 void RobotCMDInit() {
     global_map=get_global();
-    global_map->auto_shoot_end_flag = 1;
+    // global_map->auto_shoot_end_flag = 1;
     momokaSendInfo=get_momokaSend();
     rc_data = RemoteControlInit(&huart5);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
     // vision_recv_data = VisionInit(); // 视觉通信串口
@@ -77,7 +77,6 @@ void RobotCMDInit() {
 #ifdef GIMBAL_BOARD
 
 #endif // GIMBAL_BOARD
-    //gimbal_cmd_send.pitch = 0;
 
     robot_state = ROBOT_READY; // 启动时机器人进入工作模式,后续加入所有应用初始化完成之后再进入
 }
@@ -107,10 +106,6 @@ static void RemoteControlSet() {
     {
         reset_global();
         shoot_cmd_send.auto_mode = AUTO_OFF;
-        // shoot_cmd_send.stella_mode =Enable;
-        // shoot_cmd_send.trigger_mode=allow_fire,
-        // shoot_cmd_send.liyuu_=Speed_Control;
-        // shoot_cmd_send.reload_mode = Reload_enable;
         // 云台参数,确定云台控制数据
         // 左侧开关状态为[中]
         if (switch_is_mid(rc_data[TEMP].rc.switch_left))
@@ -119,6 +114,7 @@ static void RemoteControlSet() {
             shoot_cmd_send.Stella_speed = -25.0f * ((float) rc_data[TEMP].rc.rocker_l1 / 660);
             shoot_cmd_send.Liyuu_speed= 30000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);
             shoot_cmd_send.Trigger_Location=(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
+
         }
         // 左侧开关状态为[下]
         if (switch_is_down(rc_data[TEMP].rc.switch_left)) {
@@ -173,7 +169,7 @@ static void RemoteControlSet() {
                     shoot_cmd_send.Trigger_Location=0.0f;
                     global_map->fuck_them_all = 0;
                     global_map->auto_shoot_ready_flag = 0;
-                    // global->auto_shoot_end_flag = 0;
+                    global_map->auto_shoot_end_flag = 0;
                     global_map->auto_shoot_set_flag = 1;
                     shoot_cmd_send.reload=!shoot_cmd_send.reload;
                 }

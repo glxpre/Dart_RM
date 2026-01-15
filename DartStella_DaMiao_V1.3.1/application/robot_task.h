@@ -1,7 +1,7 @@
 /* 注意该文件应只用于任务初始化,只能被robot.c包含*/
 #pragma once
 
-#include "auto_aim.h"
+#include "auto_routine.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os.h"
