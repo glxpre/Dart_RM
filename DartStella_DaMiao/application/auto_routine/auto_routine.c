@@ -7,6 +7,7 @@
 #include "boardCommunicate.h"
 #include "Communication.h"
 #include "controller.h"
+#include "dji_motor.h"
 #include "dmmotor.h"
 #include "shoot.h"
 #define AUTO_SHOOT_DELAY_MS 5000  // 延迟500ms再进入下一次发射
@@ -26,7 +27,7 @@ static global_struct *global_map;
 static SlaveD_Rec_info_t *slaveRecInfo;  //接收上位机数据
 static momoka_Rec_info_t *momokaRec_map; //接收镖板数据
 static momoka_Send_info_t *momokaSend_map;
-static DMMotorInstance *Stella_map;
+static DJIMotorInstance *Stella_map;
 
 static float auto_shoot_delay_time = 0;  // 延迟时间计数器
 
@@ -71,16 +72,28 @@ void AutoAim_Task() {
             auto_shoot_cmd_send.Trigger_Location = 0.0f;
             auto_gimbal_cmd_send.yaw_speed = 0.0f;
             auto_shoot_delay_time=0;
+            momokaSend_map->ready_flag = 0;
             break;
         case AUTO_ON:
             aim_output = PIDCalculate(&autoaim_pid, (float)slaveRecInfo->Pixel_Error, 0);
             auto_gimbal_cmd_send.yaw_speed = 3.0f*aim_output;
             if (global_map->auto_shoot_begin_flag == 1) {  //TODO：自动发射检测逻辑（半成品，后续待改进,使用状态机）
-                if (global_map->auto_shoot_set_flag == 1) {  //触发拨轮开始信号
-                    ori_angle = Stella_map->measure.total_angle;
-                    global_map->auto_shoot_set_flag = 0;
-                    auto_shoot_cmd_send.Stella_speed = 6.0f;
+                switch (momokaRec_map->return_flag) {
+                    case 0:
+                        auto_shoot_cmd_send.Stella_speed = -2.0f;
+                        break;
+                    case 1:
+                        ori_angle = Stella_map->measure.total_angle;
+                        // global_map->auto_shoot_set_flag = 0;
+                        auto_shoot_cmd_send.Stella_speed = 6.0f;
+                        momokaSend_map->begin_flag = 1;
+                        break;
+                    default:
+                        break;
                 }
+                // if (global_map->auto_shoot_set_flag == 1) {  //触发拨轮开始信号
+                //
+                // }
                 if (Stella_map->measure.total_angle - ori_angle > 27.00) {
                     auto_shoot_cmd_send.Stella_speed = -16.0f;
                     global_map->auto_shoot_process_flag = 1;

@@ -16,7 +16,7 @@
 static DJIMotorInstance *Liyuu; // 拨盘电机
 static DJIMotorInstance *Reload ; // 换弹电机
 static ServoInstance *Trigger;
-static DMMotorInstance *Stella ;
+static DJIMotorInstance *Stella ;
 // // static servo_instance *lid; 需要增加弹舱盖
 //
 static Publisher_t *shoot_pub;  //发射发布者
@@ -46,38 +46,39 @@ void ShootInit()
     Motor_Init_Config_s Stella_config = {
         .can_init_config = {
             .can_handle = &hcan1,
-            .tx_id = 0x01,  //slave id  //0x01
-            .rx_id = 0x02,  //MASTER ID  //0x02
-        },
-        .controller_param_init_config = {
+            .tx_id = 1
+    },
+    .controller_param_init_config = {
             .angle_PID = {
-                .Kp = 0.0f,
+                // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
+                .Kp = 12.0f,//12.0f,
                 .Ki = 0.0f,
-                .Kd = 0.00f,
+                .Kd = 0.0f,
+                .DeadBand = 0.0f,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-                .IntegralLimit = 0.3f,
-                //.MaxOut = 2,
+                .IntegralLimit = 500,
+                .MaxOut = 10000,
             },
-            .speed_PID = {
-                .Kp = 0.25f,
-                .Ki = 0.75f,
-                .Kd = 0.001f,
-                .Improve = PID_Integral_Limit | PID_Derivative_On_Measurement |PID_Trapezoid_Intergral ,
-                .IntegralLimit = 10,
-                .MaxOut = 10,
-            },
+        .speed_PID = {
+                .Kp = 1.8f,  //4000
+                .Ki = 0.01f, //100
+                .Kd = 0.0f, //0
+                .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
+                .IntegralLimit = 10000,
+                .MaxOut = 10000,
         },
-        .controller_setting_init_config = {
+    },
+    .controller_setting_init_config = {
             .angle_feedback_source = MOTOR_FEED,
             .speed_feedback_source = MOTOR_FEED,
             .outer_loop_type = SPEED_LOOP,
-            .close_loop_type =  SPEED_LOOP | ANGLE_LOOP,
+            .close_loop_type = SPEED_LOOP | ANGLE_LOOP,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
-            //.feedforward_flag = CURRENT_FEEDFORWARD,
-        },
-        .motor_type = DM6006,
+            //.feedback_reverse_flag = FEEDBACK_DIRECTION_REVERSE,
+    },
+    .motor_type = M3508
     };
-    Stella=DMMotorInit(&Stella_config);
+    Stella=DJIMotorInit(&Stella_config);
 
     Motor_Init_Config_s Liyuu_config = {
         .can_init_config = {
@@ -193,7 +194,7 @@ void ShootTask()
     if (shoot_cmd_recv.liyuu_==Liyuu_DISABLE || shoot_cmd_recv.stella_mode==Lost_Control || shoot_cmd_recv.reload_mode == Reload_disable) {
         DJIMotorStop(Liyuu);
 
-        DMMotorStop(Stella);
+        DJIMotorStop(Stella);
         Stella->motor_controller.speed_PID.Iout=0.0f;//暂时这么处理，不太优雅，后续寻求别的方案
 
         DJIMotorStop(Reload);
@@ -204,8 +205,8 @@ void ShootTask()
         DJIMotorEnable(Liyuu);
         DJIMotorOuterLoop(Liyuu,SPEED_LOOP);
 
-        DMMotorEnable(Stella);
-        DMMotorOuterLoop(Stella,SPEED_LOOP);
+        DJIMotorEnable(Stella);
+        DJIMotorOuterLoop(Stella,SPEED_LOOP);
 
         DJIMotorEnable(Reload);
         DJIMotorOuterLoop(Reload,ANGLE_LOOP);
@@ -213,7 +214,7 @@ void ShootTask()
         switch (shoot_cmd_recv.auto_mode) {
             case AUTO_OFF: // 自由速控
                 DJIMotorSetRef(Liyuu , shoot_cmd_recv.Liyuu_speed);
-                DMMotorSetRef(Stella,shoot_cmd_recv.Stella_speed);
+                DJIMotorSetRef(Stella,shoot_cmd_recv.Stella_speed);
                 if (shoot_cmd_recv.reload!=reload_flag) {
                     dart_order += 1;
                     if (dart_order > 4) {
@@ -229,7 +230,7 @@ void ShootTask()
                 break;
             case AUTO_ON:
                 DJIMotorSetRef(Liyuu,auto_shoot_cmd_recv.Liyuu_speed);
-                DMMotorSetRef(Stella , auto_shoot_cmd_recv.Stella_speed);
+                DJIMotorSetRef(Stella , auto_shoot_cmd_recv.Stella_speed);
                 Reload->motor_controller.speed_PID.Iout=0.0f;
                 Reload->motor_controller.angle_PID.Iout=0.0f;
                 if (auto_shoot_cmd_recv.reload!=auto_reload_flag) {

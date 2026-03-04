@@ -23,7 +23,8 @@ typedef struct
 {
     CmdID cmdID;    //控制id
     uint8_t OnLine;//上线为1，掉线为0
-    uint8_t init_flag;
+    uint8_t return_flag;  //滑台复位标志
+    uint8_t Liyuu_flag;
     int Force_cur;
 } momoka_Rec_info_t;
 typedef struct
@@ -32,6 +33,7 @@ typedef struct
     uint8_t OnLine;//上线为1，掉线为0
     // int Liyuu_pos; //头上丝杆位置
     uint8_t dart_order_map;
+    uint8_t begin_flag;
     uint8_t ready_flag; //检测是否已经归位，然后检测拉力值
 } momoka_Send_info_t;
 
