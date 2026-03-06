@@ -119,7 +119,7 @@ static void RemoteControlSet() {
         if (switch_is_mid(rc_data[TEMP].rc.switch_left))
         {
             //
-            shoot_cmd_send.Stella_speed = 1620.0f *19.0f* ((float) rc_data[TEMP].rc.rocker_l1 / 660);
+            shoot_cmd_send.Stella_speed = 1800.0f *19.0f* ((float) rc_data[TEMP].rc.rocker_l1 / 660);
             shoot_cmd_send.Liyuu_speed= 30000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);
             shoot_cmd_send.Trigger_Location=(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
 

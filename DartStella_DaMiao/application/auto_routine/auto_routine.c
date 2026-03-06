@@ -78,24 +78,13 @@ void AutoAim_Task() {
             aim_output = PIDCalculate(&autoaim_pid, (float)slaveRecInfo->Pixel_Error, 0);
             auto_gimbal_cmd_send.yaw_speed = 3.0f*aim_output;
             if (global_map->auto_shoot_begin_flag == 1) {  //TODO：自动发射检测逻辑（半成品，后续待改进,使用状态机）
-                switch (momokaRec_map->return_flag) {
-                    case 0:
-                        auto_shoot_cmd_send.Stella_speed = -2.0f;
-                        break;
-                    case 1:
-                        ori_angle = Stella_map->measure.total_angle;
-                        // global_map->auto_shoot_set_flag = 0;
-                        auto_shoot_cmd_send.Stella_speed = 6.0f;
-                        momokaSend_map->begin_flag = 1;
-                        break;
-                    default:
-                        break;
+                if (global_map->auto_shoot_set_flag == 1) {  //触发拨轮开始信号
+                    ori_angle = Stella_map->measure.total_angle;
+                    global_map->auto_shoot_set_flag = 0;
+                    auto_shoot_cmd_send.Stella_speed = -6.0f;
                 }
-                // if (global_map->auto_shoot_set_flag == 1) {  //触发拨轮开始信号
-                //
-                // }
                 if (Stella_map->measure.total_angle - ori_angle > 27.00) {
-                    auto_shoot_cmd_send.Stella_speed = -16.0f;
+                    auto_shoot_cmd_send.Stella_speed = 16.0f;
                     global_map->auto_shoot_process_flag = 1;
                 }
                 if (Stella_map->measure.total_angle - ori_angle < 0 && global_map->auto_shoot_process_flag == 1) {
