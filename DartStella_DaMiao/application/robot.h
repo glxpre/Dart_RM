@@ -13,6 +13,9 @@ typedef struct {
     uint8_t auto_shoot_process_flag;  //滑台拉到底标志位
     uint8_t auto_shoot_ready_flag;  //滑台复位标志位
     uint8_t auto_shoot_end_flag;  //发射完毕标志位
+
+    int adv_force; //镖镖预设发射拉力
+    int adv_CMD_data;  //修改预设拉力值
 }global_struct;
 
 global_struct *get_global(void);

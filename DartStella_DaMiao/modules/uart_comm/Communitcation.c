@@ -26,7 +26,7 @@ static void uartCommResetRx()
 
 //双板通信接收回调
 void uart_comm_callback_1() {
-    LOGINFO("UART1 GET");
+    LOGINFO("USART7 GET");
     uartcommReadData(momokaComm.Instance->recv_buff);
     momokaComm.update_flag = 1;
 }
@@ -128,5 +128,27 @@ void *uart_slave_CommGet()
 {
     slaveComm.update_flag = 0; // 读取后将更新flag置为0
     return &slaveComm.unpacked_data;
+}
+
+int SensorFilter(int input)
+{
+    static int output = 0;
+    float alpha = 0.2f;
+    float limit = 3;
+
+    static int last_input = 0;
+
+    // 限幅
+    if(input - last_input > limit)
+        input = last_input + limit;
+    else if(last_input - input > limit)
+        input = last_input - limit;
+
+    last_input = input;
+
+    // 低通
+    output = alpha * input + (1 - alpha) * output;
+
+    return output;
 }
 

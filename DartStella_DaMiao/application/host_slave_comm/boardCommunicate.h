@@ -27,7 +27,7 @@ typedef enum {
 typedef struct
 {
     CmdID cmdID;    //控制id
-    uint8_t OnLine;//上线为1，掉线为0
+    // uint8_t OnLine;//上线为1，掉线为0
     uint8_t return_flag;  //滑台回到上端
     uint8_t Liyuu_flag;
     int Force_cur;
@@ -36,7 +36,8 @@ typedef struct
 {
     CmdID cmdID;    //控制id
     uint8_t OnLine;//上线为1，掉线为0
-    // int CMD_data;   //发射拉力修改值
+    int CMD_data;   //发射拉力修改值
+    int adv_CMD_data; //预设拉力修改值
     // int Liyuu_pos; //头上丝杆位置
     uint8_t dart_order_map;
     uint8_t loaded_flag;

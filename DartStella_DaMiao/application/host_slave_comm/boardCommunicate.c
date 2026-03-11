@@ -26,6 +26,8 @@ static DJIMotorInstance *yaw_map; // yaw电机
 extern uint8_t dart_order;  //镖镖序号（外部定义）
 static global_struct *global_map;
 
+int Sensor_force;
+
 momoka_Send_info_t *get_momokaSend() {
     return &momokaSendInfo;
 }
@@ -78,6 +80,7 @@ void C_with_StellaSensorBoard_Task(void) {
     // uartcommSendData((uint8_t *)&momokaSendInfo);
     // momokaSendInfo.Liyuu_pos = ((int)Liyuu_map->measure.total_angle)/50;
     momokaSendInfo.dart_order_map = dart_order;
+    global_map->adv_CMD_data += momokaSendInfo.adv_CMD_data;
     uartcommSendData((uint8_t *)&momokaSendInfo);
 
     SlaveDSendInfo.Shoot_Force_Init = 123;
@@ -85,12 +88,30 @@ void C_with_StellaSensorBoard_Task(void) {
 
     //数据更新检测
     momokaRecInfo=*(momoka_Rec_info_t *)uart_sensor_CommGet();
+    Sensor_force = SensorFilter(momokaRecInfo.Force_cur);
     switch (momokaRecInfo.cmdID) {
         case ShootNow:
             global_map->fuck_them_all=1;
             break;
         case ShootWait:
             global_map->fuck_them_all=0;
+            break;
+        default:
+            break;
+    }
+
+    switch (dart_order) {
+        case 1:
+            global_map->adv_force = 358;
+            break;
+        case 2:
+            global_map->adv_force = 380;
+            break;
+        case 3:
+            global_map->adv_force = 400;
+            break;
+        case 4:
+            global_map->adv_force = 420;
             break;
         default:
             break;

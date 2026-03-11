@@ -9,6 +9,7 @@
 #include "controller.h"
 #include "dji_motor.h"
 #include "dmmotor.h"
+#include "remote_control.h"
 #include "shoot.h"
 #define AUTO_SHOOT_DELAY_MS 5000  // 延迟500ms再进入下一次发射
 
@@ -77,17 +78,22 @@ void AutoAim_Task() {
         case AUTO_ON:
             aim_output = PIDCalculate(&autoaim_pid, (float)slaveRecInfo->Pixel_Error, 0);
             auto_gimbal_cmd_send.yaw_speed = 3.0f*aim_output;
+            // auto_shoot_cmd_send.Trigger_Location=(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
             if (global_map->auto_shoot_begin_flag == 1) {  //TODO：自动发射检测逻辑（半成品，后续待改进,使用状态机）
                 if (global_map->auto_shoot_set_flag == 1) {  //触发拨轮开始信号
+                    do {
+                        auto_shoot_cmd_send.Liyuu_speed = (float)(global_map->adv_force - momokaRec_map->Force_cur)/200*70000;
+                    } while (global_map->adv_force - momokaRec_map->Force_cur < 2);
+
                     ori_angle = Stella_map->measure.total_angle;
                     global_map->auto_shoot_set_flag = 0;
-                    auto_shoot_cmd_send.Stella_speed = -6.0f;
+                    auto_shoot_cmd_send.Stella_speed = -14.0f*1800.0f;
                 }
-                if (Stella_map->measure.total_angle - ori_angle > 27.00) {
-                    auto_shoot_cmd_send.Stella_speed = 16.0f;
+                if (Stella_map->measure.total_angle - ori_angle < -90080.21) {
+                    auto_shoot_cmd_send.Stella_speed = 18.0f*1800.0f;
                     global_map->auto_shoot_process_flag = 1;
                 }
-                if (Stella_map->measure.total_angle - ori_angle < 0 && global_map->auto_shoot_process_flag == 1) {
+                if (Stella_map->measure.total_angle - ori_angle > 0 && global_map->auto_shoot_process_flag == 1) {
                     auto_shoot_cmd_send.Stella_speed = 0.0f;
                     global_map->auto_shoot_process_flag = 0;
                     global_map->auto_shoot_ready_flag = 1;
@@ -105,7 +111,7 @@ void AutoAim_Task() {
                 case 1:
                     momokaSend_map->ready_flag = 1;
                     if (global_map->fuck_them_all) {
-                        auto_shoot_cmd_send.Trigger_Location=80.0f;
+                        auto_shoot_cmd_send.Trigger_Location=-80.0f;
                         if (auto_shoot_delay_time == 0) {
                             auto_shoot_delay_time = DWT_GetTimeline_ms();;  // 开始计时
                         }

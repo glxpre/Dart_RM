@@ -52,7 +52,7 @@ void ShootInit()
             .angle_PID = {
                 // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
                 .Kp = 12.0f,//12.0f,
-                .Ki = 0.0f,
+                .Ki = 0.01f,
                 .Kd = 0.0f,
                 .DeadBand = 0.0f,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
@@ -225,7 +225,7 @@ void ShootTask()
                     reload_flag=shoot_cmd_recv.reload;
                 }
                 //扳机角度设置
-                int16_t angle = (int16_t)roundf(40.0f + 1.6f * shoot_cmd_recv.Trigger_Location);
+                int16_t angle = (int16_t)roundf(80.0f + 1.6f * shoot_cmd_recv.Trigger_Location); //+ 40.0f);
                 Servo_Motor_FreeAngle_Set(Trigger, angle);
                 break;
             case AUTO_ON:
@@ -242,7 +242,7 @@ void ShootTask()
                     DJIMotorSetRef(Reload,last_reload_size);
                     auto_reload_flag=auto_shoot_cmd_recv.reload;
                 }
-                int16_t auto_angle = (int16_t)roundf(40.0f + 1.6f * auto_shoot_cmd_recv.Trigger_Location);
+                int16_t auto_angle = (int16_t)roundf(80.0f + 1.6f * auto_shoot_cmd_recv.Trigger_Location);
                 Servo_Motor_FreeAngle_Set(Trigger, auto_angle);
                 break;
             default:

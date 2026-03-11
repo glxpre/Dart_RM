@@ -130,9 +130,19 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     {
         if (huart == usart_instance[i]->usart_handle)
         {
+            /* log the HAL error code so we know what happened */
+            uint32_t err = huart->ErrorCode;
+            LOGWARNING("[bsp_usart] USART error callback triggered, instance idx [%d], error=0x%08lX", i, err);
+            if (err & HAL_UART_ERROR_PE)   LOGWARNING("  - parity error");
+            if (err & HAL_UART_ERROR_FE)   LOGWARNING("  - framing error");
+            if (err & HAL_UART_ERROR_NE)   LOGWARNING("  - noise error");
+            if (err & HAL_UART_ERROR_ORE)  LOGWARNING("  - overrun error");
+            if (err & HAL_UART_ERROR_DMA)  LOGWARNING("  - DMA error");
+
+            /* restart reception
+               keep the same behaviour as before, disabling half-transfer interrupt */
             HAL_UARTEx_ReceiveToIdle_DMA(usart_instance[i]->usart_handle, usart_instance[i]->recv_buff, usart_instance[i]->recv_buff_size);
             __HAL_DMA_DISABLE_IT(usart_instance[i]->usart_handle->hdmarx, DMA_IT_HT);
-            LOGWARNING("[bsp_usart] USART error callback triggered, instance idx [%d]", i);
             return;
         }
     }

@@ -99,47 +99,7 @@ void RobotCMDInit() {
  */
 static void RemoteControlSet() {
    // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据
-    if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下]，修改发射时拉力
-    {
-        reset_global();
-        shoot_cmd_send.auto_mode = AUTO_OFF;
-        momokaSendInfo->cmdID = Shoot_Force_change;
-        // momokaSendInfo->CMD_data = rc_data[TEMP].rc.rocker_r1+5*rc_data[TEMP].rc.rocker_l1 ;  //左边杆高灵敏度，右边杆低灵敏度
-        // CANCommSend(Cboard_can_comm , (uint8_t *)momokaSendInfo);
-        // uartcommSendData((uint8_t *)&momokaSendInfo);
-    }
-
-    else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中]，手动模式
-    {
-        reset_global();
-        shoot_cmd_send.auto_mode = AUTO_OFF;
-        gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
-        // 云台参数,确定云台控制数据
-        // 左侧开关状态为[中]
-        if (switch_is_mid(rc_data[TEMP].rc.switch_left))
-        {
-            //
-            shoot_cmd_send.Stella_speed = 1800.0f *19.0f* ((float) rc_data[TEMP].rc.rocker_l1 / 660);
-            shoot_cmd_send.Liyuu_speed= 30000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);
-            shoot_cmd_send.Trigger_Location=(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
-
-        }
-        // 左侧开关状态为[下]
-        if (switch_is_down(rc_data[TEMP].rc.switch_left)) {
-            gimbal_cmd_send.yaw_speed = -30000.0f * ((float) rc_data[TEMP].rc.rocker_l_/660);//todo：确认参数
-
-            //换弹逻辑
-            if ((-(float)rc_data[TEMP].rc.dial / 660)>0.2f&&reload_flag) {
-                shoot_cmd_send.reload=!shoot_cmd_send.reload;
-                reload_flag = 0;
-            }
-            else if ((-(float)rc_data[TEMP].rc.dial / 660)<0.2f)
-                reload_flag = 1;
-        }
-        // uartcommSendData((uint8_t *)&momokaSendInfo);
-    }//右侧开关为中
-
-    else if (switch_is_up(rc_data[TEMP].rc.switch_right))  // 右侧开关状态[上],用于自动发射
+    if (switch_is_up(rc_data[TEMP].rc.switch_right))  // 右侧开关状态[上],用于自动发射
     {
         momokaSendInfo->cmdID = Auto_Shoot;
 
@@ -148,6 +108,7 @@ static void RemoteControlSet() {
 
         auto_shoot_cmd_send_map->liyuu_=Speed_Control;
         auto_shoot_cmd_send_map->Liyuu_speed= 30000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);  //调整丝杆
+        // auto_shoot_cmd_send_map->Trigger_Location = -(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
 
         // CANCommSend(Cboard_can_comm , (uint8_t *)momokaSendInfo);
         //向上拨拨轮，进入全自动模式
@@ -172,6 +133,46 @@ static void RemoteControlSet() {
 
         // uartcommSendData((uint8_t *)&momokaSendInfo);
     }// 右侧开关状态[上]
+    else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中]，手动模式
+    {
+        reset_global();
+        shoot_cmd_send.auto_mode = AUTO_OFF;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
+        // 云台参数,确定云台控制数据
+        // 左侧开关状态为[中]
+        if (switch_is_mid(rc_data[TEMP].rc.switch_left))
+        {
+            //
+            shoot_cmd_send.Stella_speed = 1800.0f *21.0f* ((float) rc_data[TEMP].rc.rocker_l1 / 660);
+            shoot_cmd_send.Liyuu_speed= 70000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);
+            shoot_cmd_send.Trigger_Location=-(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
+
+        }
+        // 左侧开关状态为[下]
+        if (switch_is_down(rc_data[TEMP].rc.switch_left)) {
+            gimbal_cmd_send.yaw_speed = -30000.0f * ((float) rc_data[TEMP].rc.rocker_l_/660);//todo：确认参数
+
+            //换弹逻辑
+            if ((-(float)rc_data[TEMP].rc.dial / 660)>0.2f&&reload_flag) {
+                shoot_cmd_send.reload=!shoot_cmd_send.reload;
+                reload_flag = 0;
+            }
+            else if ((-(float)rc_data[TEMP].rc.dial / 660)<0.2f)
+                reload_flag = 1;
+        }
+        // uartcommSendData((uint8_t *)&momokaSendInfo);
+    }//右侧开关为中
+
+    else if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下]，修改发射时拉力
+    {
+        reset_global();
+        shoot_cmd_send.auto_mode = AUTO_OFF;
+        momokaSendInfo->cmdID = Shoot_Force_change;
+        momokaSendInfo->CMD_data = rc_data[TEMP].rc.rocker_l1 ;  //右摇杆修改发射拉力
+        momokaSendInfo->adv_CMD_data = rc_data[TEMP].rc.rocker_r1 ; //左摇杆修改预设拉力
+        // CANCommSend(Cboard_can_comm , (uint8_t *)momokaSendInfo);
+        // uartcommSendData((uint8_t *)&momokaSendInfo);
+    }
 }
 
 /**

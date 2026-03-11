@@ -60,4 +60,5 @@ uart_communicate_t *HostInit();
 static void uartcommReadData(uint8_t *buff);
 void *uart_slave_CommGet();
 void *uart_sensor_CommGet();
+int SensorFilter(int input);
 #endif //COMMUNICATION_H
