@@ -26,6 +26,7 @@ static DJIMotorInstance *yaw_map; // yaw电机
 extern uint8_t dart_order;  //镖镖序号（外部定义）
 static global_struct *global_map;
 
+DynamicFilter* Sensor_Filter;
 int Sensor_force;
 
 momoka_Send_info_t *get_momokaSend() {
@@ -55,6 +56,8 @@ void C_with_StellaSensorBoard_Init(void) {
     Liyuu_map = (DJIMotorInstance *)get_Liyuu();
     // yaw_map = (DJIMotorInstance *)get_yaw();
 
+    // DynamicFilter_Init(Sensor_Filter , (float)momokaRecInfo.Force_cur);
+
     // CANComm_Init_Config_s comm_config={
     //     .can_config = {
     //         .tx_id = 0x02,
@@ -80,7 +83,8 @@ void C_with_StellaSensorBoard_Task(void) {
     // uartcommSendData((uint8_t *)&momokaSendInfo);
     // momokaSendInfo.Liyuu_pos = ((int)Liyuu_map->measure.total_angle)/50;
     momokaSendInfo.dart_order_map = dart_order;
-    global_map->adv_CMD_data += momokaSendInfo.adv_CMD_data;
+    momokaSendInfo.adv_Force = global_map->adv_force_set;
+    momokaSendInfo.Liyuu_pos = (int)Liyuu_map->measure.total_angle;
     uartcommSendData((uint8_t *)&momokaSendInfo);
 
     SlaveDSendInfo.Shoot_Force_Init = 123;
@@ -88,34 +92,9 @@ void C_with_StellaSensorBoard_Task(void) {
 
     //数据更新检测
     momokaRecInfo=*(momoka_Rec_info_t *)uart_sensor_CommGet();
-    Sensor_force = SensorFilter(momokaRecInfo.Force_cur);
-    switch (momokaRecInfo.cmdID) {
-        case ShootNow:
-            global_map->fuck_them_all=1;
-            break;
-        case ShootWait:
-            global_map->fuck_them_all=0;
-            break;
-        default:
-            break;
-    }
+    // Sensor_force = SensorFilter(momokaRecInfo.Force_cur);
+    // Sensor_force = (int)DynamicFilter_Update(Sensor_Filter , (float)momokaRecInfo.Force_cur);
 
-    switch (dart_order) {
-        case 1:
-            global_map->adv_force = 358;
-            break;
-        case 2:
-            global_map->adv_force = 380;
-            break;
-        case 3:
-            global_map->adv_force = 400;
-            break;
-        case 4:
-            global_map->adv_force = 420;
-            break;
-        default:
-            break;
-    }
 
     if (slaveComm->update_flag) {
         SlaveDRecInfo=*(SlaveD_Rec_info_t *)uart_slave_CommGet();

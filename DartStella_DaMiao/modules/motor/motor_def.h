@@ -126,6 +126,7 @@ typedef enum
     HT04,
     DM4310,
     DM6006,
+    DM8009p
 } Motor_Type_e;
 
 typedef enum

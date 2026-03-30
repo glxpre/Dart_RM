@@ -130,25 +130,57 @@ void *uart_slave_CommGet()
     return &slaveComm.unpacked_data;
 }
 
-int SensorFilter(int input)
-{
-    static int output = 0;
-    float alpha = 0.2f;
-    float limit = 3;
+// 初始化滤波器
+void DynamicFilter_Init(DynamicFilter* filter, float first_value) {
+    filter->last_output = first_value;
+    filter->min_alpha = 0.03f;  // 静止时非常平滑
+    filter->max_alpha = 0.8f;   // 突变时几乎无延迟
+    filter->threshold = 12.0f;  // 假设噪声跳动幅度在20以内，超过12认为是真实受力
+}
 
-    static int last_input = 0;
+// 滤波函数
+float DynamicFilter_Update(DynamicFilter* filter, float new_value) {
+    // 1. 计算当前值与上次输出的差值绝对值
+    float diff = new_value - filter->last_output;
+    if (diff < 0) diff = -diff;
 
-    // 限幅
-    if(input - last_input > limit)
-        input = last_input + limit;
-    else if(last_input - input > limit)
-        input = last_input - limit;
+    // 2. 根据差值动态计算平滑系数 alpha
+    float alpha;
+    if (diff > filter->threshold) {
+        // 数据突变，说明真的受力了，使用大权重，快速跟随，降低延迟
+        alpha = filter->max_alpha;
+    } else {
+        // 数据变化小，说明是噪声跳动，根据变化量线性插值计算alpha
+        // 变化越小，alpha越接近 min_alpha
+        alpha = filter->min_alpha + (filter->max_alpha - filter->min_alpha) * (diff / filter->threshold);
+    }
 
-    last_input = input;
-
-    // 低通
-    output = alpha * input + (1 - alpha) * output;
+    // 3. 执行一阶低通滤波
+    float output = alpha * new_value + (1.0f - alpha) * filter->last_output;
+    filter->last_output = output;
 
     return output;
 }
+
+// int SensorFilter(int input)
+// {
+//     static int output = 0;
+//     float alpha = 0.2f;
+//     float limit = 5;
+//
+//     static int last_input = 0;
+//
+//     // 限幅
+//     if(input - last_input > limit)
+//         input = last_input + limit;
+//     else if(last_input - input > limit)
+//         input = last_input - limit;
+//
+//     last_input = input;
+//
+//     // 低通
+//     output = alpha * input + (1 - alpha) * output;
+//
+//     return output;
+// }
 

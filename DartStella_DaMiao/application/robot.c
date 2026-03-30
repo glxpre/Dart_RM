@@ -23,6 +23,7 @@ global_struct *get_global(void) {
     return &global;
 }
 void reset_global(void) {
+    global.auto_shoot_wait_flag = 0;
     global.auto_shoot_begin_flag = 0;
     global.auto_shoot_set_flag = 0;
     global.auto_shoot_process_flag = 0;
@@ -55,6 +56,7 @@ void RobotInit()
     GimbalInit();
     ShootInit();
     C_with_StellaSensorBoard_Init();
+    AutoAim_Init();
 #endif
 
     OSTaskInit(); // 创建基础任务

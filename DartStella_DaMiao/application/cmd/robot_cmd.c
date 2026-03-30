@@ -19,6 +19,9 @@
 #include "dmmotor.h"
 #include "referee_task.h"
 // #include "referee_VT.h"
+#include <c++/13.3.1/bits/std_abs.h>
+
+#include "buzzer.h"
 #include "rm_referee.h"
 
 #include "robot.h"
@@ -57,7 +60,7 @@ static momoka_Rec_info_t *momokaRecInfo;
 
 static uint8_t reload_flag = 1;    //换弹标志位，1为允许换弹
 static uint8_t auto_flag = 1;    //自动发射介入标志位，1为介入
-static uint8_t end_flag = 1;
+static uint8_t std_set_flag = 1;
 
 static uint8_t testtt=0;
 
@@ -66,10 +69,7 @@ void RobotCMDInit() {
     auto_shoot_cmd_send_map = get_auto_shoot_send();
     // global_map->auto_shoot_end_flag = 1;
     momokaSendInfo=get_momokaSend();
-    momokaSendInfo->cmdID=0;
-    momokaSendInfo->dart_order_map=0;
-    momokaSendInfo->OnLine=0;
-    momokaSendInfo->ready_flag=0;
+
     rc_data = RemoteControlInit(&huart5);   // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
     // vision_recv_data = VisionInit(); // 视觉通信串口
     //referee_VT_data = VTInit(&huart1);   // 图传通信串口
@@ -112,7 +112,7 @@ static void RemoteControlSet() {
 
         // CANCommSend(Cboard_can_comm , (uint8_t *)momokaSendInfo);
         //向上拨拨轮，进入全自动模式
-        if ((-(float)rc_data[TEMP].rc.dial / 660) > 0.5f && auto_flag) {
+        if ((-(float)rc_data[TEMP].rc.dial / 660) > 0.5f && auto_flag){// || momokaRecInfo->return_flag == 1) {
             global_map->auto_shoot_begin_flag = 1;
             global_map->auto_shoot_set_flag = 1;
             auto_flag = 0;
@@ -142,8 +142,7 @@ static void RemoteControlSet() {
         // 左侧开关状态为[中]
         if (switch_is_mid(rc_data[TEMP].rc.switch_left))
         {
-            //
-            shoot_cmd_send.Stella_speed = 1800.0f *21.0f* ((float) rc_data[TEMP].rc.rocker_l1 / 660);
+            shoot_cmd_send.Stella_speed = 30.0f * ((float) rc_data[TEMP].rc.rocker_l1 / 660);
             shoot_cmd_send.Liyuu_speed= 70000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);
             shoot_cmd_send.Trigger_Location=-(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
 
@@ -168,8 +167,16 @@ static void RemoteControlSet() {
         reset_global();
         shoot_cmd_send.auto_mode = AUTO_OFF;
         momokaSendInfo->cmdID = Shoot_Force_change;
-        momokaSendInfo->CMD_data = rc_data[TEMP].rc.rocker_l1 ;  //右摇杆修改发射拉力
-        momokaSendInfo->adv_CMD_data = rc_data[TEMP].rc.rocker_r1 ; //左摇杆修改预设拉力
+        // 设定std_energy_pos
+        if ((float) rc_data[TEMP].rc.rocker_l1 / 660 > 0.8 && std_set_flag) {
+             global_map->std_energy_pos_flag = 1;
+             std_set_flag = 0;
+        }
+        else if ((float) rc_data[TEMP].rc.rocker_l1 / 660 < 0.8) {
+            std_set_flag = 1;
+        }
+        global_map->adv_dCMD_data = rc_data[TEMP].rc.rocker_r1 ; //右摇杆修改预设拉力
+        global_map->adv_CMD_data += global_map->adv_dCMD_data;
         // CANCommSend(Cboard_can_comm , (uint8_t *)momokaSendInfo);
         // uartcommSendData((uint8_t *)&momokaSendInfo);
     }

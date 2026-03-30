@@ -6,16 +6,25 @@
  * @brief 镖架全局状态标志位操作
  *
  */
+typedef enum {
+    Debug_on=0x01,
+    Debug_off,
+}Debug_mode;
 typedef struct {
     uint8_t fuck_them_all;
+    uint8_t std_energy_pos_flag;  //储能丝杆标准位，需手动测量然后设定
+    uint8_t auto_shoot_wait_flag; //等待丝杆到达标准位置
     uint8_t auto_shoot_begin_flag;  //全自动发射介入
     uint8_t auto_shoot_set_flag;  //初始位角度值
     uint8_t auto_shoot_process_flag;  //滑台拉到底标志位
     uint8_t auto_shoot_ready_flag;  //滑台复位标志位
     uint8_t auto_shoot_end_flag;  //发射完毕标志位
+    Debug_mode auto_debug_mode;
 
-    int adv_force; //镖镖预设发射拉力
+    int adv_force_set; //镖镖预设发射拉力
     int adv_CMD_data;  //修改预设拉力值
+    int adv_dCMD_data;
+    int Pixel_offset;   //像素值偏移修正
 }global_struct;
 
 global_struct *get_global(void);

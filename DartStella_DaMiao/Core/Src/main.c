@@ -148,7 +148,6 @@ int main(void)
 
   SEGGER_SYSVIEW_Conf();
 	RobotInit(); // 唯一的初始化函数
-  AutoAim_Init();
 	LOGINFO("[main] SystemInit() and RobotInit() done");
 
 

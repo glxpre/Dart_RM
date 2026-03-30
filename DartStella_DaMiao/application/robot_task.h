@@ -160,6 +160,7 @@ __attribute__((noreturn)) void StartAUTOAIMTASK(void const *argument)
     {
         autoaim_start = DWT_GetTimeline_ms();
         AutoAim_Task();
+        BuzzerTask();
         autoaim_dt = DWT_GetTimeline_ms() - autoaim_start;
         if (autoaim_dt > 5) {
             LOGERROR("[freeRTOS] AutoAim Task is being DELAY! dt = [%f]", &autoaim_dt);

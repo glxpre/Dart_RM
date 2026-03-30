@@ -53,6 +53,13 @@ typedef struct {
     uint8_t recv_data_len; // 接收数据长度
 }uart_communicate_init_config_t;
 
+typedef struct {
+    float last_output;  // 上一次的输出值
+    float min_alpha;    // 最小权重（决定稳态时的平滑度，越小越平滑，0.01~0.1）
+    float max_alpha;    // 最大权重（决定突变时的跟随速度，越大越快跟上，0.5~1.0）
+    float threshold;    // 动态判断阈值（根据你的传感器噪声幅值设定）
+} DynamicFilter;
+
 void uartcommSendData(uint8_t *senddata);
 void Slave_Send(uint8_t *send);
 uart_communicate_t  *uartcommInit(uart_communicate_init_config_t *config);
@@ -60,5 +67,8 @@ uart_communicate_t *HostInit();
 static void uartcommReadData(uint8_t *buff);
 void *uart_slave_CommGet();
 void *uart_sensor_CommGet();
-int SensorFilter(int input);
+
+void DynamicFilter_Init(DynamicFilter* filter, float first_value);
+float DynamicFilter_Update(DynamicFilter* filter, float new_value);
+// int SensorFilter(int input);
 #endif //COMMUNICATION_H
