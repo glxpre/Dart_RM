@@ -19,9 +19,7 @@
 #include "dmmotor.h"
 #include "referee_task.h"
 // #include "referee_VT.h"
-#include <c++/13.3.1/bits/std_abs.h>
 
-#include "buzzer.h"
 #include "rm_referee.h"
 
 #include "robot.h"
@@ -158,6 +156,14 @@ static void RemoteControlSet() {
             }
             else if ((-(float)rc_data[TEMP].rc.dial / 660)<0.2f)
                 reload_flag = 1;
+            // 设定std_energy_pos
+            if ((float) rc_data[TEMP].rc.rocker_l1 / 660 > 0.5f && std_set_flag) {
+                global_map->std_energy_pos_flag = 1;
+                std_set_flag = 0;
+            }
+            else if ((float) rc_data[TEMP].rc.rocker_l1 / 660 < 0.5f) {
+                std_set_flag = 1;
+            }
         }
         // uartcommSendData((uint8_t *)&momokaSendInfo);
     }//右侧开关为中
@@ -167,16 +173,11 @@ static void RemoteControlSet() {
         reset_global();
         shoot_cmd_send.auto_mode = AUTO_OFF;
         momokaSendInfo->cmdID = Shoot_Force_change;
-        // 设定std_energy_pos
-        if ((float) rc_data[TEMP].rc.rocker_l1 / 660 > 0.8 && std_set_flag) {
-             global_map->std_energy_pos_flag = 1;
-             std_set_flag = 0;
-        }
-        else if ((float) rc_data[TEMP].rc.rocker_l1 / 660 < 0.8) {
-            std_set_flag = 1;
-        }
+
         global_map->adv_dCMD_data = rc_data[TEMP].rc.rocker_r1 ; //右摇杆修改预设拉力
+        global_map->CMD_dPixel_offset= rc_data[TEMP].rc.rocker_l1;
         global_map->adv_CMD_data += global_map->adv_dCMD_data;
+        global_map->CMD_Pixel_offset += global_map->CMD_dPixel_offset;
         // CANCommSend(Cboard_can_comm , (uint8_t *)momokaSendInfo);
         // uartcommSendData((uint8_t *)&momokaSendInfo);
     }

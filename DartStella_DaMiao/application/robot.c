@@ -30,6 +30,7 @@ void reset_global(void) {
     global.auto_shoot_ready_flag = 0;
     global.auto_shoot_end_flag = 0;
     global.fuck_them_all = 0;
+    global.std_energy_pos_flag = 0;
 }
 
 void RobotInit()

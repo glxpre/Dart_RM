@@ -1,6 +1,7 @@
 #ifndef ROBOT_H
 #define ROBOT_H
 #include <stdint.h>
+#include <sys/types.h>
 /* Robot利用robot_def.h中的宏对不同的机器人进行了大量的兼容,同时兼容了两个开发板(云台板和底盘板)的配置 */
 /**
  * @brief 镖架全局状态标志位操作
@@ -8,7 +9,7 @@
  */
 typedef enum {
     Debug_on=0x01,
-    Debug_off,
+    Debug_ready,
 }Debug_mode;
 typedef struct {
     uint8_t fuck_them_all;
@@ -19,12 +20,15 @@ typedef struct {
     uint8_t auto_shoot_process_flag;  //滑台拉到底标志位
     uint8_t auto_shoot_ready_flag;  //滑台复位标志位
     uint8_t auto_shoot_end_flag;  //发射完毕标志位
+    uint8_t auto_routine_end_flag;  //自动逻辑结束标志位
     Debug_mode auto_debug_mode;
 
     int adv_force_set; //镖镖预设发射拉力
     int adv_CMD_data;  //修改预设拉力值
     int adv_dCMD_data;
-    int Pixel_offset;   //像素值偏移修正
+    int Pixel_offset;//像素值偏移修正
+    int CMD_dPixel_offset;
+    int CMD_Pixel_offset;
 }global_struct;
 
 global_struct *get_global(void);
