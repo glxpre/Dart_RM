@@ -42,7 +42,7 @@ typedef struct
     Slide_status slide_status;
     // slide_table_status slide_status;
     uint8_t Liyuu_flag;
-    int Force_cur;
+    float Force_cur;
 } momoka_Rec_info_t;
 typedef struct
 {

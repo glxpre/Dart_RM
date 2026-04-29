@@ -164,6 +164,9 @@ static void RemoteControlSet() {
             else if ((float) rc_data[TEMP].rc.rocker_l1 / 660 < 0.5f) {
                 std_set_flag = 1;
             }
+            if ((float) rc_data[TEMP].rc.rocker_r1 / 660 > 0.5f ) {
+                global_map->clear_sum_pixel_error_flag = 1;
+            }
         }
         // uartcommSendData((uint8_t *)&momokaSendInfo);
     }//右侧开关为中

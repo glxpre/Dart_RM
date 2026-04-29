@@ -45,12 +45,17 @@ static DJIMotorInstance *Liyuu_map;
 
 static float auto_shoot_delay_time = 0;  // 延迟时间计数器
 
-static int testtt=0;
+static float testtt=0;
 uint8_t dart_order = 1;    //镖镖序号
-extern int Sensor_force;
+extern float Sensor_force;
 static float ori_angle ; //自动发射开始时位置
 static float std_energy_pos;  //储能丝杆标准位
 static float energy_angle_map;  //倍数缩放的丝杆角度
+
+static int current_state_MAIN = 0;
+static int current_state_AUTO_ON=DEBUG_STATE_INDEX;
+static int dart_number=4;
+static int reload_start_flag=1;
 
 BuzzzerInstance *Dart_buzzer;
 const Note_t Auto_Off_beep[] = {
@@ -90,10 +95,10 @@ void AutoAim_Init() {
     // BuzzerSetLoudness(Dart_buzzer, 1.0f);
 
     PID_Init_Config_s aim_config={
-        .Kp = 100.0f,
+        .Kp = 120.0f,
         .Ki = 0.0f,
         .Kd = 0.0f,
-        .MaxOut = 3000.0f,
+        .MaxOut = 3500.0f,
     };
     PIDInit(&autoaim_pid, &aim_config);
 
@@ -101,7 +106,7 @@ void AutoAim_Init() {
         .Kp = 35.0f,
         .Ki = 0.0f,
         .Kd = 0.8f,
-        .MaxOut = 850.0f,
+        .MaxOut = 800.0f,
     };
     PIDInit(&force_shooter_pid, &force_shooter_config);
 
@@ -120,9 +125,6 @@ void AutoAim_Init() {
 }
 
 
-static int current_state_MAIN = 0;
-static int current_state_AUTO_ON=DEBUG_STATE_INDEX;
-static int dart_number=4;
 
 void DEBUG_STATE(void) {
     if (dart_number>0) {
@@ -153,10 +155,10 @@ void SLIP_UP_STATE(void) {
 }
 void SCREW_ADJUST_FORCE_STATE(void) {
     auto_shoot_cmd_send.Stella_speed = 0.0f;
-    force_shooter_output = PIDCalculate(&force_shooter_pid, (float)Sensor_force, (float)global_map->adv_force_set);
-    auto_shoot_cmd_send.Liyuu_speed = -force_shooter_output*21.5f;
-    if (abs(testtt-0) < 2) {
-        auto_shoot_cmd_send.Liyuu_speed =0;
+    force_shooter_output = PIDCalculate(&force_shooter_pid, Sensor_force, global_map->adv_force_set);
+    auto_shoot_cmd_send.Liyuu_speed = -force_shooter_output*17.0f;
+    if (abs(testtt) < 1.0f) {
+        // auto_shoot_cmd_send.Liyuu_speed =0;
         current_state_AUTO_ON=TRIGGER_ON_STATE_INDEX;
     }
 }
@@ -165,7 +167,7 @@ void TRIGGER_ON_STATE(void) {
     auto_shoot_cmd_send.Trigger_Location=-80.0f;
     current_state_AUTO_ON=RELOAD_STATE_INDEX;
 }
-static int reload_start_flag=1;
+
 void RELOAD_STATE(void) {
     if (reload_start_flag) {
         auto_shoot_delay_time = DWT_GetTimeline_ms();
@@ -198,6 +200,7 @@ void AUTO_OFF_FUNCTION(void) {
     momokaSend_map->ready_flag = 0;
     momokaSend_map->OnLine = Auto_Off;
     global_map->auto_debug_mode = Debug_on;
+    current_state_AUTO_ON = 0;
     dart_number=4;
     if (global_map->std_energy_pos_flag) {
         std_energy_pos = Liyuu_map->measure.total_angle/50.0f;
@@ -214,7 +217,7 @@ sizeof(Auto_Off_beep)/sizeof(Auto_Off_beep[0]),
 ALARM_LEVEL_HIGH);
     //yaw轴对准
     aim_output = PIDCalculate(&autoaim_pid, (float)slaveRecInfo->Pixel_Error, 0.0f+(float)global_map->Pixel_offset);
-    auto_gimbal_cmd_send.yaw_speed = 3.0f*aim_output;
+    auto_gimbal_cmd_send.yaw_speed = 2.0f*aim_output;
     pos_shooter_output = PIDCalculate(&pos_shooter_pid , Liyuu_map->measure.total_angle/50.0f , std_energy_pos);
     force_shooter_output = PIDCalculate(&force_shooter_pid, (float)Sensor_force, (float)global_map->adv_force_set);
     // if (global_map->auto_shoot_wait_flag == 0 ){//|| abs(global_map->adv_force_set - momokaRec_map->Force_cur) > 2) {
@@ -229,25 +232,93 @@ ALARM_LEVEL_HIGH);
 
 static void (*auto_aim_state_table_main[])(void)={AUTO_OFF_FUNCTION,AUTO_ON_FUNCTION};
 
+static int d_Pixel_Error=0;
+static int sum_Pixel_Error=0;
+static int Pixel_Error_last=0;
+static float d_Distance_dart=0;
+static float Distance_dart=0;
+static float K_offset=0;
+static float force_dart_offset_ramdom=0;
+static int flag_114514=1;
+#define h_dart_2 625
+#define K_force_dart_distancetoforce 0.1
+#define pixel_to_x 0.005
+#define K_dart_qujian_peishu 1.0f
+
+static int flag_dart_ramdom_offset=1;
+const int dichotomization[]={-1000,-100,-50,0,50,100,1000};
+int get_segment(int val) {//二分查找
+    int n = sizeof(dichotomization)/sizeof(int);
+    int l = 0, r = n - 1;
+    while (l <= r) {
+        int m = (l + r) / 2;
+        if (val < dichotomization[m]) r = m - 1;
+        else l = m + 1;
+    }
+    return l;
+}
+
+
+static float adv_CMD_data[4];
+static float CMD_Pixel_offset[4];
+
 void AutoAim_Task() {
     SubGetMessage(shoot_cmd_sub, &shoot_cmd_recv);
     testtt = Sensor_force - global_map->adv_force_set;
+
+
+    // d_Pixel_Error=slaveRecInfo->Pixel_Error-Pixel_Error_last;//用公式拟合，要标定的参数过多，舍弃
+    // sum_Pixel_Error+=d_Pixel_Error;
+    // K_offset=(pixel_to_x*sum_Pixel_Error)/sqrt((pixel_to_x*sum_Pixel_Error)*(pixel_to_x*sum_Pixel_Error)+h_dart_2);
+    // d_Distance_dart=K_offset*(pixel_to_x*sum_Pixel_Error);
+    // Distance_dart+=d_Distance_dart;
+    // force_dart_offset_ramdom=K_force_dart_distancetoforce*Distance_dart;
+    // if (force_dart_offset_ramdom>2)force_dart_offset_ramdom=2;
+    // if (force_dart_offset_ramdom<-2)force_dart_offset_ramdom=-2;
+    // Pixel_Error_last=slaveRecInfo->Pixel_Error;
+
+    // if (flag_114514) {
+    //     Pixel_Error_last=slaveRecInfo->Pixel_Error;
+    //     flag_114514=0;
+    // }
+    d_Pixel_Error=slaveRecInfo->Pixel_Error-Pixel_Error_last;
+    if (auto_gimbal_cmd_send.yaw_speed!=0) {
+        sum_Pixel_Error+=d_Pixel_Error;
+    }
+    if (global_map->clear_sum_pixel_error_flag) {
+        sum_Pixel_Error=0;
+        global_map->clear_sum_pixel_error_flag=0;
+    }
+    force_dart_offset_ramdom=-K_dart_qujian_peishu*
+        ((float)get_segment(sum_Pixel_Error)-  (  sizeof(dichotomization)/sizeof(int)/2.0f  ) );
+    Pixel_Error_last=slaveRecInfo->Pixel_Error;
+
+
+
     switch (dart_order) {
         case 1:
-            global_map->adv_force_set = 1348+3+4+ global_map->adv_CMD_data/10000;
-            global_map->Pixel_offset = -15-16+global_map->CMD_Pixel_offset/10000;
+            adv_CMD_data[0]+=global_map->adv_dCMD_data/10000.0f;
+            CMD_Pixel_offset[0]+=global_map->CMD_dPixel_offset/10000.0f;
+            global_map->adv_force_set = 1320.5 + adv_CMD_data[0];
+            global_map->Pixel_offset = 25+CMD_Pixel_offset[0];
             break;
         case 2:
-            global_map->adv_force_set = 1337+21+4+ global_map->adv_CMD_data/10000;
-            global_map->Pixel_offset = -15-1-3+global_map->CMD_Pixel_offset/10000;
+            adv_CMD_data[1]+=global_map->adv_dCMD_data/10000.0f;
+            CMD_Pixel_offset[1]+=global_map->CMD_dPixel_offset/10000.0f;
+            global_map->adv_force_set = 1324.5 + adv_CMD_data[1];
+            global_map->Pixel_offset = -9+CMD_Pixel_offset[1];
             break;
         case 3:
-            global_map->adv_force_set = 1344+18+5 +global_map->adv_CMD_data/10000;
-            global_map->Pixel_offset = 6+1-8+global_map->CMD_Pixel_offset/10000;
+            adv_CMD_data[2]+=global_map->adv_dCMD_data/10000.0f;
+            CMD_Pixel_offset[2]+=global_map->CMD_dPixel_offset/10000.0f;
+            global_map->adv_force_set = 1302.5 + adv_CMD_data[2];//1367
+            global_map->Pixel_offset =35 +CMD_Pixel_offset[2];//-1
             break;
         case 4:
-            global_map->adv_force_set = 1336+7+9+ global_map->adv_CMD_data/10000;
-            global_map->Pixel_offset = -9-1-12+global_map->CMD_Pixel_offset/10000;
+            adv_CMD_data[3]=global_map->adv_CMD_data/10000.0f;
+            CMD_Pixel_offset[3]=global_map->CMD_Pixel_offset/10000.0f;
+            global_map->adv_force_set = 1320.5+ adv_CMD_data[3];
+            global_map->Pixel_offset = 28+CMD_Pixel_offset[3];
             break;
         default:
             break;

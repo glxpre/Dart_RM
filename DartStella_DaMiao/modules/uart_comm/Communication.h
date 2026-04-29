@@ -70,5 +70,5 @@ void *uart_sensor_CommGet();
 
 void DynamicFilter_Init(DynamicFilter* filter, float first_value);
 float DynamicFilter_Update(DynamicFilter* filter, float new_value);
-int SensorFilter(int input);
+float SensorFilter(float input);
 #endif //COMMUNICATION_H

@@ -27,7 +27,7 @@ extern uint8_t dart_order;  //镖镖序号（外部定义）
 static global_struct *global_map;
 
 DynamicFilter* Sensor_Filter;
-int Sensor_force;
+float Sensor_force;
 
 momoka_Send_info_t *get_momokaSend() {
     return &momokaSendInfo;

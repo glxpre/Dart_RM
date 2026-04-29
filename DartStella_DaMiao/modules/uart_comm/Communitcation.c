@@ -162,13 +162,13 @@ float DynamicFilter_Update(DynamicFilter* filter, float new_value) {
     return output;
 }
 
-int SensorFilter(int input)
+float SensorFilter(float input)
 {
-    static int output = 0;
+    static float output = 0;
     float alpha = 0.2f;
     float limit = 10;
 
-    static int last_input = 0;
+    static float last_input = 0;
 
     // 限幅
     if(input - last_input > limit)

@@ -173,7 +173,7 @@ void ShootInit()
             },
             .speed_PID = {
                 .Kp = 13.0f,//10.0f,  //4000
-                .Ki = 20.0f,//0.5f, //100
+                .Ki = 2.0f,//0.5f, //100
                 .Kd = 0.14f,//0.001f, //0
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 10000,

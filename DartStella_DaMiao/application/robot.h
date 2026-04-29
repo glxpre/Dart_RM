@@ -23,12 +23,13 @@ typedef struct {
     uint8_t auto_routine_end_flag;  //自动逻辑结束标志位
     Debug_mode auto_debug_mode;
 
-    int adv_force_set; //镖镖预设发射拉力
-    int adv_CMD_data;  //修改预设拉力值
-    int adv_dCMD_data;
+    float adv_force_set; //镖镖预设发射拉力
+    float adv_CMD_data;  //修改预设拉力值
+    float adv_dCMD_data;
     int Pixel_offset;//像素值偏移修正
     int CMD_dPixel_offset;
     int CMD_Pixel_offset;
+    uint8_t clear_sum_pixel_error_flag;
 }global_struct;
 
 global_struct *get_global(void);
