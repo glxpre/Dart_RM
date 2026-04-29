@@ -13,7 +13,8 @@ typedef enum {
     SLIP_UP_STATE_INDEX,
     SCREW_ADJUST_FORCE_STATE_INDEX,
     TRIGGER_ON_STATE_INDEX,
-    RELOAD_STATE_INDEX
+    RELOAD_STATE_INDEX,
+    WAIT_TRIGGER_STATE_INDEX
 }STATE;
 
 Shoot_Ctrl_Cmd_s *get_auto_shoot_send(void);

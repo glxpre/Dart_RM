@@ -17,7 +17,7 @@
 #include "buzzer_alarm/buzzer_alarm.h"
 #define AUTO_SHOOT_DELAY_MS 1000  // 延迟500ms再进入下一次发射
 #define SLIDE_LENGTH 25.400f
-#define MAX_STATE 6
+#define MAX_STATE 7
 #define LIMIT_ONE(x)  (( (x) > 1 ) ? 0 : (x))
 #define LIMIT_MAX(x)  (( (x) > (MAX_STATE-1) ) ? 0 : (x))
 
@@ -56,6 +56,9 @@ static int current_state_MAIN = 0;
 static int current_state_AUTO_ON=DEBUG_STATE_INDEX;
 static int dart_number=4;
 static int reload_start_flag=1;
+
+static int batch_darts_fired=0;
+static int batch_size=1;
 
 BuzzzerInstance *Dart_buzzer;
 const Note_t Auto_Off_beep[] = {
@@ -180,8 +183,36 @@ void RELOAD_STATE(void) {
         auto_shoot_delay_time = 0;  // 重置计时器
         dart_number-=1;
         reload_start_flag=1;
-        current_state_AUTO_ON=DEBUG_STATE_INDEX;
+
+        batch_darts_fired +=1;
+        if (dart_number<=0)
+        {
+            current_state_AUTO_ON=DEBUG_STATE_INDEX;
+        }else if (batch_darts_fired>=batch_size)
+        {
+            current_state_AUTO_ON=WAIT_TRIGGER_STATE_INDEX;
+        }else
+        {
+            current_state_AUTO_ON=DEBUG_STATE_INDEX;
+        }
+
     }
+}
+void WAIT_TRIGGER_STATE(void)
+{
+
+    auto_shoot_cmd_send.Liyuu_speed = 0.0f;
+    auto_shoot_cmd_send.Stella_speed = 0.0f;
+    auto_shoot_cmd_send.Trigger_Location = 0.0f;
+    auto_gimbal_cmd_send.yaw_speed = 0.0f;
+
+    if (global_map->auto_shoot_begin_flag == 1) {
+
+        batch_darts_fired = 0;
+        global_map->auto_shoot_begin_flag = 0;
+        current_state_AUTO_ON = DEBUG_STATE_INDEX;
+    }
+
 }
 static void (*auto_aim_state_table_AUTO_ON[])(void)={
     DEBUG_STATE,
@@ -189,7 +220,8 @@ static void (*auto_aim_state_table_AUTO_ON[])(void)={
     SLIP_UP_STATE,
     SCREW_ADJUST_FORCE_STATE,
     TRIGGER_ON_STATE,
-    RELOAD_STATE
+    RELOAD_STATE,
+    WAIT_TRIGGER_STATE
 };
 void AUTO_OFF_FUNCTION(void) {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
