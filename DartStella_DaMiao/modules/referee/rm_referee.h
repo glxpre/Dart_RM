@@ -11,6 +11,7 @@
 
 extern uint8_t UI_Seq;
 
+
 #pragma pack(1)
 typedef struct
 {
@@ -39,6 +40,7 @@ typedef struct
 	aerial_robot_energy_t AerialRobotEnergy;			   // 0x0205
 	ext_robot_hurt_t RobotHurt;							   // 0x0206
 	ext_shoot_data_t ShootData;							   // 0x0207
+	ext_dart_shoot_control_data_t DartControlData;		   // 0x020A
 
 	// 自定义交互数据的接收
 	Communicate_ReceiveData_t ReceiveData;
@@ -92,6 +94,8 @@ typedef struct
 
 } Referee_Interactive_info_t;
 
+
+extern referee_info_t referee_info;
 #pragma pack()
 
 /**

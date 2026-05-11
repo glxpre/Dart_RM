@@ -22,7 +22,7 @@
 
 static USARTInstance *referee_usart_instance; // 裁判系统串口实例
 static DaemonInstance *referee_daemon;		  // 裁判系统守护进程
-static referee_info_t referee_info;			  // 裁判系统数据
+referee_info_t referee_info;			  // 裁判系统数据
 
 /**
  * @brief  读取裁判数据,中断中读取保证速度
@@ -94,6 +94,9 @@ static void JudgeReadData(uint8_t *buff)
 					break;
 				case ID_student_interactive: // 0x0301   syhtodo接收代码未测试
 					memcpy(&referee_info.ReceiveData, (buff + DATA_Offset), LEN_receive_data);
+					break;
+				case ID_dart_shoot_control: // 0x020A
+					memcpy(&referee_info.DartControlData, (buff + DATA_Offset), LEN_dart_shoot_control);
 					break;
 				}
 			}

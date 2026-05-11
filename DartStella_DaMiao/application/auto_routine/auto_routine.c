@@ -15,6 +15,7 @@
 #include "remote_control.h"
 #include "shoot.h"
 #include "buzzer_alarm/buzzer_alarm.h"
+#include "rm_referee.h"
 #define AUTO_SHOOT_DELAY_MS 1000  // 延迟500ms再进入下一次发射
 #define SLIDE_LENGTH 25.400f
 #define MAX_STATE 7
@@ -58,7 +59,7 @@ static int dart_number=4;
 static int reload_start_flag=1;
 
 static int batch_darts_fired=0;
-static int batch_size=1;
+static int batch_size=4;
 
 BuzzzerInstance *Dart_buzzer;
 const Note_t Auto_Off_beep[] = {
@@ -127,17 +128,19 @@ void AutoAim_Init() {
     auto_gimbal_cmd_pub = PubRegister("auto_gimbal_cmd", sizeof(Gimbal_Ctrl_Cmd_s));
 }
 
-
+static int auto_shoot_cmd_flag=0;
 
 void DEBUG_STATE(void) {
     if (dart_number>0) {
         auto_shoot_cmd_send.Stella_speed = 1.0f;
         auto_shoot_cmd_send.Liyuu_speed = pos_shooter_output*12.0f;
+        if (fabsf(pos_shooter_output - 0.0f) < 30.0f)auto_shoot_cmd_flag=1;
+        if (referee_info.DartControlData.dart_station_state==0)auto_shoot_cmd_flag=1;
         if (momokaRec_map->slide_status == Slide_in_up ){//&& fabs(auto_shoot_cmd_send.Liyuu_speed - 0.0f) < 0.5f) {
             ori_angle = Stella_map->measure.total_angle;
             auto_shoot_cmd_send.Stella_speed = 0.0f;
         }
-        if (momokaRec_map->slide_status == Slide_in_up && fabsf(pos_shooter_output - 0.0f) < 30.0f&&global_map->auto_shoot_begin_flag==1) {
+        if (momokaRec_map->slide_status == Slide_in_up &&  auto_shoot_cmd_flag  &&global_map->auto_shoot_begin_flag==1) {
             auto_shoot_cmd_send.Liyuu_speed = 0.0f;
             current_state_AUTO_ON=SLIP_DOWN_STATE_INDEX;
         }
@@ -151,7 +154,7 @@ void SLIP_DOWN_STATE(void) {
 }
 void SLIP_UP_STATE(void) {
     auto_shoot_cmd_send.Stella_speed = 14.0f;
-    if (Stella_map->measure.total_angle - ori_angle > -0.25f ) {
+    if (Stella_map->measure.total_angle - ori_angle > -0.40f ) {
         current_state_AUTO_ON=SCREW_ADJUST_FORCE_STATE_INDEX;
         auto_shoot_cmd_send.Stella_speed = 0.0f;
     }
@@ -184,7 +187,7 @@ void RELOAD_STATE(void) {
         dart_number-=1;
         reload_start_flag=1;
 
-        batch_darts_fired +=1;
+        // batch_darts_fired +=1;
         if (dart_number<=0)
         {
             current_state_AUTO_ON=DEBUG_STATE_INDEX;
@@ -248,7 +251,12 @@ void AUTO_ON_FUNCTION(void) {
 sizeof(Auto_Off_beep)/sizeof(Auto_Off_beep[0]),
 ALARM_LEVEL_HIGH);
     //yaw轴对准
-    aim_output = PIDCalculate(&autoaim_pid, (float)slaveRecInfo->Pixel_Error, 0.0f+(float)global_map->Pixel_offset);
+    if (slaveRecInfo->Pixel_Error==-660) {
+        aim_output=0;
+    }
+    else if (slaveRecInfo->Pixel_Error!=-660) {
+        aim_output = PIDCalculate(&autoaim_pid, (float)slaveRecInfo->Pixel_Error, 0.0f+(float)global_map->Pixel_offset);
+    }
     auto_gimbal_cmd_send.yaw_speed = 2.0f*aim_output;
     pos_shooter_output = PIDCalculate(&pos_shooter_pid , Liyuu_map->measure.total_angle/50.0f , std_energy_pos);
     force_shooter_output = PIDCalculate(&force_shooter_pid, (float)Sensor_force, (float)global_map->adv_force_set);
@@ -331,26 +339,26 @@ void AutoAim_Task() {
         case 1:
             adv_CMD_data[0]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[0]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 1320.5 + adv_CMD_data[0];
-            global_map->Pixel_offset = 25+CMD_Pixel_offset[0];
+            global_map->adv_force_set = 1335.5-10.0-7.0+ adv_CMD_data[0];
+            global_map->Pixel_offset = 10+35+15+CMD_Pixel_offset[0];
             break;
         case 2:
             adv_CMD_data[1]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[1]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 1324.5 + adv_CMD_data[1];
-            global_map->Pixel_offset = -9+CMD_Pixel_offset[1];
+            global_map->adv_force_set = 1326.5-1.5-5.5-6.0+ adv_CMD_data[1];//1331.5+1.5+1.5
+            global_map->Pixel_offset = 10+25+10+CMD_Pixel_offset[1];// 20+20+5+20
             break;
         case 3:
             adv_CMD_data[2]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[2]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 1302.5 + adv_CMD_data[2];//1367
-            global_map->Pixel_offset =35 +CMD_Pixel_offset[2];//-1
+            global_map->adv_force_set =1325.0 -7.0-5.0 + adv_CMD_data[2];//1367  1302.0
+            global_map->Pixel_offset = 6+28+CMD_Pixel_offset[2];//-1  44+20+15+10
             break;
         case 4:
             adv_CMD_data[3]=global_map->adv_CMD_data/10000.0f;
             CMD_Pixel_offset[3]=global_map->CMD_Pixel_offset/10000.0f;
-            global_map->adv_force_set = 1320.5+ adv_CMD_data[3];
-            global_map->Pixel_offset = 28+CMD_Pixel_offset[3];
+            global_map->adv_force_set = 1323.0 -5.5-1.5-7.0+ adv_CMD_data[3];//1320.0-0.5-1
+            global_map->Pixel_offset = 6+35+24+CMD_Pixel_offset[3];//54+10-15
             break;
         default:
             break;

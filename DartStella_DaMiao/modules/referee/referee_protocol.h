@@ -84,7 +84,8 @@ typedef enum
 	ID_shoot_data = 0x0207,				   // 实时射击数据
 	ID_student_interactive = 0x0301,	   // 机器人间交互数据
     ID_custom_robot = 0x302,               // 自定义控制器数据（图传链路）
-    ID_remote_control = 0x304,             // 键鼠遥控数据（图传链路）
+    ID_remote_control = 0x304,				// 键鼠遥控数据（图传链路）
+	ID_dart_shoot_control = 0x020A,// 飞镖发射控制
 } CmdID_e;
 
 /* 命令码数据段长,根据官方协议来定义长度，还有自定义数据长度 */
@@ -105,7 +106,7 @@ typedef enum
 	LEN_receive_data = 6 + Communicate_Data_LEN, // 0x0301
     LEN__custom_robot = 30,                      // 0x0302
     LEN_remote_control = 12,                     // 0x0304
-
+	LEN_dart_shoot_control = 6 ,
 } JudgeDataLength_e;
 
 /****************************接收数据的详细说明****************************/
@@ -231,6 +232,15 @@ typedef struct
 	uint8_t bullet_freq;
 	float bullet_speed;
 } ext_shoot_data_t;
+
+/* ID: 0x020A  Byte:  6    飞镖相关数据 */
+typedef struct
+{
+	uint8_t dart_station_state;
+	uint8_t reserved;
+	uint16_t switch_target_remaining_time;
+	uint16_t last_launch_confirm_remaining_time;
+} ext_dart_shoot_control_data_t;
 
 /****************************图传链路数据****************************/
 /* ID: 0x0304  Byte:  12    图传链路键鼠遥控数据 */
