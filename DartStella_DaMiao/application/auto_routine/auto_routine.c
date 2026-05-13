@@ -142,6 +142,7 @@ void DEBUG_STATE(void) {
         }
         if (momokaRec_map->slide_status == Slide_in_up &&  auto_shoot_cmd_flag  &&global_map->auto_shoot_begin_flag==1) {
             auto_shoot_cmd_send.Liyuu_speed = 0.0f;
+            momokaSend_map->magnet_flag=1;
             current_state_AUTO_ON=SLIP_DOWN_STATE_INDEX;
         }
     }
@@ -171,6 +172,7 @@ void SCREW_ADJUST_FORCE_STATE(void) {
 void TRIGGER_ON_STATE(void) {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
     auto_shoot_cmd_send.Trigger_Location=-80.0f;
+    momokaSend_map->magnet_flag=0;
     current_state_AUTO_ON=RELOAD_STATE_INDEX;
 }
 
@@ -336,17 +338,17 @@ void AutoAim_Task() {
 
 
     switch (dart_order) {
-        case 1:
+        case 1://1335.5-10.0-7.0
             adv_CMD_data[0]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[0]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 1335.5-10.0-7.0+ adv_CMD_data[0];
-            global_map->Pixel_offset = 10+35+15+CMD_Pixel_offset[0];
+            global_map->adv_force_set =825+ adv_CMD_data[0];
+            global_map->Pixel_offset = 40+CMD_Pixel_offset[0];
             break;
         case 2:
             adv_CMD_data[1]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[1]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 1326.5-1.5-5.5-6.0+ adv_CMD_data[1];//1331.5+1.5+1.5
-            global_map->Pixel_offset = 10+25+10+CMD_Pixel_offset[1];// 20+20+5+20
+            global_map->adv_force_set = 825+ adv_CMD_data[1];//1331.5+1.5+1.5
+            global_map->Pixel_offset = 85+CMD_Pixel_offset[1];// 20+20+5+20
             break;
         case 3:
             adv_CMD_data[2]+=global_map->adv_dCMD_data/10000.0f;

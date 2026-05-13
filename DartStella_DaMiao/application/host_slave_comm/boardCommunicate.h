@@ -52,7 +52,8 @@ typedef struct
     int adv_Force; //预设拉力修改值
     int Liyuu_pos; //头上丝杆位置
     uint8_t dart_order_map;
-    uint8_t ready_flag; //检测是否已经归位，然后检测拉力值
+    uint8_t ready_flag;//检测是否已经归位，然后检测拉力值
+    uint8_t magnet_flag;
 } momoka_Send_info_t;
 
 // 此结构体包含c板与上位机间的通信相关信息
