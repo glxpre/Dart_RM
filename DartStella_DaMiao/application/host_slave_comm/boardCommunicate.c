@@ -92,10 +92,12 @@ void C_with_StellaSensorBoard_Task(void) {
 
     //数据更新检测
     momokaRecInfo=*(momoka_Rec_info_t *)uart_sensor_CommGet();
-    if (momokaRecInfo.Force_cur > 700) {
-        Sensor_force = SensorFilter(momokaRecInfo.Force_cur);
+    if (momokaRecInfo.Force_cur!=0) {
+        if (momokaRecInfo.Force_cur > 700) {
+            Sensor_force = SensorFilter(momokaRecInfo.Force_cur);
+        }
+        else Sensor_force = momokaRecInfo.Force_cur;
     }
-    else Sensor_force = momokaRecInfo.Force_cur;
     // Sensor_force = SensorFilter(momokaRecInfo.Force_cur);
     // Sensor_force = (int)DynamicFilter_Update(Sensor_Filter , (float)momokaRecInfo.Force_cur);
 
