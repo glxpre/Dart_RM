@@ -62,6 +62,9 @@ static uint8_t std_set_flag = 1;
 
 static uint8_t testtt=0;
 
+void *get_rcdata(void) {
+    return rc_data;
+}
 void RobotCMDInit() {
     global_map=get_global();
     auto_shoot_cmd_send_map = get_auto_shoot_send();

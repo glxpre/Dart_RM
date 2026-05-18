@@ -13,5 +13,6 @@ void RobotCMDInit();
  *
  */
 void RobotCMDTask();
+void *get_rcdata(void);
 
 #endif // !ROBOT_CMD_H
