@@ -200,6 +200,14 @@ void SCREW_ADJUST_FORCE_STATE(void) {
     auto_shoot_cmd_send.Stella_speed = 0.0f;
     force_shooter_output = PIDCalculate(&force_shooter_pid, Sensor_force, global_map->adv_force_set);
     auto_shoot_cmd_send.Liyuu_speed = -force_shooter_output*17.0f;
+    if (tick_start_flag) {
+        tick_delay_time = DWT_GetTimeline_ms();
+        tick_start_flag=0;
+    }
+    if (DWT_GetTimeline_ms() - auto_shoot_delay_time > 10000&& auto_shoot_delay_time!=0) {
+        tick_delay_time = 0;
+        current_state_AUTO_ON=EMERGENCY_STATE_INDEX;
+    }
     if (abs(testtt) < 1.0f) {
         // auto_shoot_cmd_send.Liyuu_speed =0;
         // if (shoot_wait_start_flag) {
@@ -211,7 +219,9 @@ void SCREW_ADJUST_FORCE_STATE(void) {
         //         shoot_wait_start_
         //         flag=1;
         //         auto_shoot_delay_time = 0;
-                current_state_AUTO_ON=TRIGGER_ON_STATE_INDEX;
+        tick_start_flag=1;
+        tick_delay_time=0;
+        current_state_AUTO_ON=TRIGGER_ON_STATE_INDEX;
         //     }
         // }
     }
@@ -266,6 +276,10 @@ void WAIT_TRIGGER_STATE(void)
     }
 
 }
+void EMERGENCY_STATE(void) {
+    auto_shoot_cmd_send.Liyuu_speed = 0.0f;
+    auto_shoot_cmd_send.Stella_speed = 0.0f;
+}
 static void (*auto_aim_state_table_AUTO_ON[])(void)={
     DEBUG_STATE,
     SLIP_DOWN_STATE,
@@ -273,7 +287,8 @@ static void (*auto_aim_state_table_AUTO_ON[])(void)={
     SCREW_ADJUST_FORCE_STATE,
     TRIGGER_ON_STATE,
     RELOAD_STATE,
-    WAIT_TRIGGER_STATE
+    WAIT_TRIGGER_STATE,
+    EMERGENCY_STATE,
 };
 void AUTO_OFF_FUNCTION(void) {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
@@ -392,26 +407,26 @@ void AutoAim_Task() {
         case 1://1335.5-10.0-7.0  875.5 148
             adv_CMD_data[0]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[0]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set =871.5-2.5+ adv_CMD_data[0];
-            global_map->Pixel_offset = 115+CMD_Pixel_offset[0];
+            global_map->adv_force_set =871.5+10+ adv_CMD_data[0];
+            global_map->Pixel_offset = 100+CMD_Pixel_offset[0];
             break;
         case 2:
             adv_CMD_data[1]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[1]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 874.0-2.5+ adv_CMD_data[1];//1331.5+1.5+1.5
-            global_map->Pixel_offset = 149+CMD_Pixel_offset[1];// 20+20+5+20
+            global_map->adv_force_set = 874.0+10.0-1.0+ adv_CMD_data[1];//1331.5+1.5+1.5
+            global_map->Pixel_offset = 140+CMD_Pixel_offset[1];// 20+20+5+20
             break;
         case 3:
             adv_CMD_data[2]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[2]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set =872.0 -2.5+ adv_CMD_data[2];//1367  1302.0
-            global_map->Pixel_offset = 64+CMD_Pixel_offset[2];//-1  44+20+15+10
+            global_map->adv_force_set =872.0+10.0-1.0+ adv_CMD_data[2];//1367  1302.0
+            global_map->Pixel_offset = 45+CMD_Pixel_offset[2];//-1  44+20+15+10
             break;
         case 4:
             adv_CMD_data[3]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[3]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 873.5-2.5+ adv_CMD_data[3];//1320.0-0.5-1
-            global_map->Pixel_offset = 115+CMD_Pixel_offset[3];//54+10-15
+            global_map->adv_force_set = 873.5+10.0-3.0+ adv_CMD_data[3];//1320.0-0.5-1
+            global_map->Pixel_offset = 105+CMD_Pixel_offset[3];//54+10-15
             break;
         default:
             break;
