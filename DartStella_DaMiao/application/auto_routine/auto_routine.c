@@ -407,26 +407,26 @@ void AutoAim_Task() {
         case 1://1335.5-10.0-7.0  875.5 148
             adv_CMD_data[0]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[0]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set =871.5+10+ adv_CMD_data[0];
+            global_map->adv_force_set =871.5+6.0+ adv_CMD_data[0];
             global_map->Pixel_offset = 100+CMD_Pixel_offset[0];
             break;
         case 2:
             adv_CMD_data[1]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[1]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 874.0+10.0-1.0+ adv_CMD_data[1];//1331.5+1.5+1.5
-            global_map->Pixel_offset = 140+CMD_Pixel_offset[1];// 20+20+5+20
+            global_map->adv_force_set = 874.0+7.0-2.0+ adv_CMD_data[1];//1331.5+1.5+1.5
+            global_map->Pixel_offset = 128+CMD_Pixel_offset[1];// 20+20+5+20
             break;
         case 3:
             adv_CMD_data[2]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[2]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set =872.0+10.0-1.0+ adv_CMD_data[2];//1367  1302.0
+            global_map->adv_force_set =872.0+8.0-2.0+ adv_CMD_data[2];//1367  1302.0
             global_map->Pixel_offset = 45+CMD_Pixel_offset[2];//-1  44+20+15+10
             break;
         case 4:
             adv_CMD_data[3]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[3]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 873.5+10.0-3.0+ adv_CMD_data[3];//1320.0-0.5-1
-            global_map->Pixel_offset = 105+CMD_Pixel_offset[3];//54+10-15
+            global_map->adv_force_set = 873.5+7.0-3.5+ adv_CMD_data[3];//1320.0-0.5-1
+            global_map->Pixel_offset = 98+CMD_Pixel_offset[3];//54+10-15
             break;
         default:
             break;
