@@ -65,6 +65,8 @@ static int shoot_wait_start_flag=1;
 static int tick_start_flag=1;
 static int tick_dart_station_state=1;
 static int cd_shoot=0;
+static int qwq_flag=1;
+static float pos_shooter_output_limit=30.0f;
 
 static int batch_darts_fired=0;
 static int batch_size=3;
@@ -175,11 +177,16 @@ void check_state(Dart_station_state_enum* state,Dart_station_state_enum* last_st
             break;
     }
 }
-struct {
+struct struct_dart_station{
     Dart_station_state_enum state;
     Dart_station_state_enum last_state;
     void (*check_state)(Dart_station_state_enum* state,Dart_station_state_enum* last_state);
-}dart_tsation;
+};
+struct struct_dart_station dart_station={
+    .state = Dart_station_close,
+    .last_state = Dart_station_close,
+    .check_state = check_state,
+};
 
 //Todo:把这个时间延迟的逻辑封装一下，写了一点，懒得写了
 
@@ -236,7 +243,7 @@ void DEBUG_STATE(void) {
         //     }
         // }
             if (referee_info.GameState.game_progress==4) {
-                dart_tsation.check_state(&dart_tsation.state,&dart_tsation.last_state);
+                dart_station.check_state(&dart_station.state,&dart_station.last_state);
                 if (tick_dart_station_state==1&&referee_info.DartControlData.dart_station_state==2) {
                     tick_delay_time_start=DWT_GetTimeline_ms();
                 }
@@ -249,18 +256,29 @@ void DEBUG_STATE(void) {
                     tick_delay_time_end=0;
                 }
                 tick_dart_station_state=referee_info.DartControlData.dart_station_state;
-                if (dart_tsation.state==Dart_station_open&&dart_tsation.last_state==Dart_station_active_close2open
+                if (dart_station.state==Dart_station_open&&dart_station.last_state==Dart_station_active_close2open
                     &&tick_delay_time>500) {//仓门完全开启
                     auto_shoot_cmd_flag=1;
                     tick_delay_time=0;
                 }
             }
-
+            if (cd_shoot==1&&auto_shoot_cmd_flag) {
+                if (slaveRecInfo->Pixel_Error==-660){
+                    if (qwq_flag)
+                    {
+                        cd_shoot=2;
+                        qwq_flag=0;
+                        std_energy_pos-=9500;
+                        pos_shooter_output_limit=50.0f;
+                    }
+                    auto_gimbal_cmd_send.yaw_speed=-20000.0f;
+                }
+            }
             if (momokaRec_map->slide_status == Slide_in_up ){//&& fabs(auto_shoot_cmd_send.Liyuu_speed - 0.0f) < 0.5f) {
                 ori_angle = Stella_map->measure.total_angle;
                 auto_shoot_cmd_send.Stella_speed = 0.0f;
             }
-            if (momokaRec_map->slide_status == Slide_in_up &&  auto_shoot_cmd_flag  &&fabsf(pos_shooter_output - 0.0f) < 30.0f
+            if (momokaRec_map->slide_status == Slide_in_up &&  auto_shoot_cmd_flag  &&fabsf(pos_shooter_output - 0.0f) < pos_shooter_output_limit
                 &&abs(global_map->Pixel_offset-slaveRecInfo->Pixel_Error)<1.0&&referee_info.DartControlData.dart_station_state==0&& referee_info.GameState.game_progress == 4) {
                 auto_shoot_cmd_send.Liyuu_speed = 0.0f;
                 momokaSend_map->magnet_flag=1;
