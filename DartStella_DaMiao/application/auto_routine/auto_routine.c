@@ -47,6 +47,8 @@ static DJIMotorInstance *Liyuu_map;
 
 static float auto_shoot_delay_time = 0;  // 延迟时间计数器
 static float tick_delay_time = 0;  // 延迟时间计数器
+static float tick_delay_time_end = 0;
+static float tick_delay_time_start = 0;
 
 static float testtt=0;
 uint8_t dart_order = 1;    //镖镖序号
@@ -61,6 +63,7 @@ static int dart_number=4;
 static int reload_start_flag=1;
 static int shoot_wait_start_flag=1;
 static int tick_start_flag=1;
+static int tick_dart_station_state=1;
 static int cd_shoot=0;
 
 static int batch_darts_fired=0;
@@ -176,7 +179,7 @@ struct {
     Dart_station_state_enum state;
     Dart_station_state_enum last_state;
     void (*check_state)(Dart_station_state_enum* state,Dart_station_state_enum* last_state);
-}dart_station;
+}dart_tsation;
 
 //Todo:把这个时间延迟的逻辑封装一下，写了一点，懒得写了
 
@@ -233,18 +236,23 @@ void DEBUG_STATE(void) {
         //     }
         // }
             if (referee_info.GameState.game_progress==4) {
-                dart_station.check_state(&dart_station.state,&dart_station.last_state);
-                if (dart_station.state==Dart_station_active_close2open&&dart_station.last_state==Dart_station_close) {
-                    if (tick_start_flag) {
-                        tick_delay_time = DWT_GetTimeline_ms();//裁判
-                        tick_start_flag=0;
-                    }
+                dart_tsation.check_state(&dart_tsation.state,&dart_tsation.last_state);
+                if (tick_dart_station_state==1&&referee_info.DartControlData.dart_station_state==2) {
+                    tick_delay_time_start=DWT_GetTimeline_ms();
                 }
-                if (dart_station.state==Dart_station_open&&dart_station.last_state==Dart_station_active_close2open
-                    &&(DWT_GetTimeline_ms()-tick_delay_time)>500) {
+                if (tick_dart_station_state==referee_info.DartControlData.dart_station_state&&tick_dart_station_state==2) {//开仓门信号计时
+                tick_delay_time_end=DWT_GetTimeline_ms();
+                }
+                if (tick_dart_station_state==2&&referee_info.DartControlData.dart_station_state==0) {
+                    tick_delay_time=tick_delay_time_end-tick_delay_time_start;
+                    tick_delay_time_start=0;
+                    tick_delay_time_end=0;
+                }
+                tick_dart_station_state=referee_info.DartControlData.dart_station_state;
+                if (dart_tsation.state==Dart_station_open&&dart_tsation.last_state==Dart_station_active_close2open
+                    &&tick_delay_time>500) {//仓门完全开启
                     auto_shoot_cmd_flag=1;
                     tick_delay_time=0;
-                    tick_start_flag=1;
                 }
             }
 
@@ -365,45 +373,46 @@ void WAIT_TRIGGER_STATE(void)
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
     auto_shoot_cmd_send.Stella_speed = 0.0f;
     auto_shoot_cmd_send.Trigger_Location = 0.0f;
-    if (referee_info.DartControlData.dart_station_state==2) {
-        dart_door_flag=1;
-        auto_gimbal_cmd_send.yaw_speed=0;
-        if (tick_start_flag) {
-            tick_delay_time = DWT_GetTimeline_ms();//裁判
-            tick_start_flag=0;
-        }
-    }
-    if (dart_door_flag) {
-        //todo:把标志位规范一下，代码不同人写的，用了功能相同的两个标志位，简化为一个标志位
-        if (referee_info.DartControlData.dart_station_state==0)
-            dart_door_open_flag=1;
-        if (referee_info.DartControlData.dart_station_state==1)
-            dart_door_flag=0;
-    }
-
-    if (dart_door_open_flag) {
-        if (slaveRecInfo->Pixel_Error==-660) {
-            auto_gimbal_cmd_send.yaw_speed=-6000.0f;
-            cd_shoot=1;
-        }
-        else{
-            if (cd_shoot==1) {
-                cd_shoot=2;
-            }
-            auto_gimbal_cmd_send.yaw_speed = 0.0f;
+    auto_gimbal_cmd_send.yaw_speed=0;
+    cd_shoot=1;
+    // if (referee_info.DartControlData.dart_station_state==2) {
+    //     dart_door_flag=1;
+    //     if (tick_start_flag) {
+    //         tick_delay_time = DWT_GetTimeline_ms();//裁判
+    //         tick_start_flag=0;
+    //     }
+    // }
+    // if (dart_door_flag) {
+    //     //todo:把标志位规范一下，代码不同人写的，用了功能相同的两个标志位，简化为一个标志位
+    //     if (referee_info.DartControlData.dart_station_state==0)
+    //         dart_door_open_flag=1;
+    //     if (referee_info.DartControlData.dart_station_state==1)
+    //         dart_door_flag=0;
+    // }
+    //
+    // if (dart_door_open_flag) {
+    //     if (slaveRecInfo->Pixel_Error==-660) {
+    //         auto_gimbal_cmd_send.yaw_speed=-6000.0f;
+    //         cd_shoot=1;
+    //     }
+    //     else{
+    //         if (cd_shoot==1) {
+    //             cd_shoot=2;
+    //         }
+    //         auto_gimbal_cmd_send.yaw_speed = 0.0f;
             if (global_map->auto_shoot_begin_flag == 1 || auto_shoot_cmd_flag) {
                 batch_darts_fired = 0;
                 global_map->auto_shoot_begin_flag = 0;
                 auto_shoot_cmd_flag = 0;
-                dart_door_open_flag=0;
-             if (cd_shoot==2) {
-                 std_energy_pos-=9500;
-             }
+             //    dart_door_open_flag=0;
+             // if (cd_shoot==2) {
+             //     std_energy_pos-=9500;
+             // }
                 // SLIDE_LENGTH=25.450f;
                 current_state_AUTO_ON = DEBUG_STATE_INDEX;
             }
-        }
-    }
+    //     }
+    // }
 }
 void EMERGENCY_STATE(void) {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
