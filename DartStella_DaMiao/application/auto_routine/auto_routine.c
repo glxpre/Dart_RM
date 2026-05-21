@@ -295,7 +295,8 @@ void WAIT_TRIGGER_STATE(void)
             tick_start_flag=0;
         }
     }
-    if (dart_door_flag) {//todo:把标志位规范一下，代码不同人写的，用了功能相同的两个标志位，简化为一个标志位
+    if (dart_door_flag) {
+        //todo:把标志位规范一下，代码不同人写的，用了功能相同的两个标志位，简化为一个标志位
         if (referee_info.DartControlData.dart_station_state==0)
             dart_door_open_flag=1;
         if (referee_info.DartControlData.dart_station_state==1)
