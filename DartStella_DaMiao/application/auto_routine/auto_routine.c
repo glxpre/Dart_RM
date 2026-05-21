@@ -65,8 +65,8 @@ static int cd_shoot=0;
 
 static int batch_darts_fired=0;
 static int batch_size=3;
-static volatile int dart_door_flag = 0;
-static int dart_door_open_flag=0;//todo:把标志位搞个结构体，分个类
+// static volatile int dart_door_flag = 0;
+// static int dart_door_open_flag=0;//todo:把标志位搞个结构体，分个类
 BuzzzerInstance *Dart_buzzer;
 const Note_t Auto_Off_beep[] = {
     {NOTE_D5, 200},
