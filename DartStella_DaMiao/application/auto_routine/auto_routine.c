@@ -172,15 +172,31 @@ void check_state(Dart_station_state_enum* state,Dart_station_state_enum* last_st
             break;
     }
 }
-typedef struct {
+struct {
     Dart_station_state_enum state;
     Dart_station_state_enum last_state;
     void (*check_state)(Dart_station_state_enum* state,Dart_station_state_enum* last_state);
-}Dart_station;
+}dart_station;
 
+//Todo:把这个时间延迟的逻辑封装一下，写了一点，懒得写了
 
-
-
+// void tick_time_start(float* tick_delay_time,int* tick_start_flag,float* tick_start_time){
+//     *tick_start_time= DWT_GetTimeline_ms();
+// }
+// float tick_delay_time(float* tick_delay_time,int* tick_start_flag,float* tick_start_time) {
+//     tick_start_time(tick_delay_time,tick_start_flag,tick_start_time);
+// }
+// struct struct_time_tick{
+//     float tick_delay_time;
+//     int tick_start_flag;
+//     float tick_start_time;
+//     float (*tick_delay_time)(float* tick_delay_time,int* tick_start_flag,float* tick_start_time);
+// };
+//
+// struct struct_time_tick time_tick={
+//     .tick_delay_time =0,
+//     .tick_start_flag = 1,
+// };
 
 
 int yaw_abnormol(){
@@ -194,28 +210,43 @@ void DEBUG_STATE(void) {
             auto_shoot_cmd_send.Stella_speed = 1.0f;
             auto_shoot_cmd_send.Liyuu_speed = pos_shooter_output*12.0f;
             if (global_map->auto_shoot_begin_flag==1)auto_shoot_cmd_flag=1;
-            if (referee_info.DartControlData.dart_station_state==2 && referee_info.GameState.game_progress == 4) {
-                dart_door_flag=1;
-                if (tick_start_flag) {
-                    tick_delay_time = DWT_GetTimeline_ms();//裁判
-                    tick_start_flag=0;
+        //     if (referee_info.DartControlData.dart_station_state==2 && referee_info.GameState.game_progress == 4) {
+        //         dart_door_flag=1;
+        //         if (tick_start_flag) {
+        //             tick_delay_time = DWT_GetTimeline_ms();//裁判
+        //             tick_start_flag=0;
+        //         }
+        //     }
+        // if (DWT_GetTimeline_ms() - tick_delay_time > 3000&& tick_delay_time!=0) {
+        //     if (referee_info.DartControlData.dart_station_state==0 &&dart_door_flag&& referee_info.GameState.game_progress == 4) {
+        //         auto_shoot_cmd_flag=1;
+        //         dart_door_flag = 0;
+        //         tick_delay_time=0;
+        //         tick_start_flag=1;
+        //     }
+        //     if (DWT_GetTimeline_ms() - tick_delay_time > 6000&& tick_delay_time!=0) {
+        //         if (referee_info.DartControlData.dart_station_state!=0) {
+        //             tick_start_flag = 1;
+        //             tick_delay_time = 0;
+        //             dart_door_flag = 0;
+        //         }
+        //     }
+        // }
+            if (referee_info.GameState.game_progress==4) {
+                dart_station.check_state(&dart_station.state,&dart_station.last_state);
+                if (dart_station.state==Dart_station_active_close2open&&dart_station.last_state==Dart_station_close) {
+                    if (tick_start_flag) {
+                        tick_delay_time = DWT_GetTimeline_ms();//裁判
+                        tick_start_flag=0;
+                    }
+                }
+                if (dart_station.state==Dart_station_open&&dart_station.last_state==Dart_station_active_close2open
+                    &&(DWT_GetTimeline_ms()-tick_delay_time)>500) {
+                    auto_shoot_cmd_flag=1;
+                    tick_delay_time=0;
+                    tick_start_flag=1;
                 }
             }
-        if (DWT_GetTimeline_ms() - tick_delay_time > 3000&& tick_delay_time!=0) {
-            if (referee_info.DartControlData.dart_station_state==0 &&dart_door_flag&& referee_info.GameState.game_progress == 4) {
-                auto_shoot_cmd_flag=1;
-                dart_door_flag = 0;
-                tick_delay_time=0;
-                tick_start_flag=1;
-            }
-            if (DWT_GetTimeline_ms() - tick_delay_time > 6000&& tick_delay_time!=0) {
-                if (referee_info.DartControlData.dart_station_state!=0) {
-                    tick_start_flag = 1;
-                    tick_delay_time = 0;
-                    dart_door_flag = 0;
-                }
-            }
-        }
 
             if (momokaRec_map->slide_status == Slide_in_up ){//&& fabs(auto_shoot_cmd_send.Liyuu_speed - 0.0f) < 0.5f) {
                 ori_angle = Stella_map->measure.total_angle;
