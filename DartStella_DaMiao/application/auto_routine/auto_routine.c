@@ -262,7 +262,7 @@ void DEBUG_STATE(void) {
                     tick_delay_time=0;
                 }
             }
-            if (cd_shoot==1&&auto_shoot_cmd_flag) {
+            if (cd_shoot&&auto_shoot_cmd_flag) {
                 if (slaveRecInfo->Pixel_Error==-660){
                     if (qwq_flag)
                     {
@@ -586,7 +586,7 @@ void AutoAim_Task() {
                 global_map->adv_force_set = 1038+ adv_CMD_data[3];
                 global_map->Pixel_offset = 140+CMD_Pixel_offset[3];
             }
-            if (cd_shoot==0) {
+            if (cd_shoot==1) {
                 global_map->adv_force_set = 879-3.0-3.0+ adv_CMD_data[3];
                 global_map->Pixel_offset = 74+CMD_Pixel_offset[3];//98
             }//880  好879
