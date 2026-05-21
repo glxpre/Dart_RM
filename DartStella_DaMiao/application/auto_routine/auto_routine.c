@@ -18,7 +18,7 @@
 #include "rm_referee.h"
 #define AUTO_SHOOT_DELAY_MS 1000  // 延迟500ms再进入下一次发射
 #define AUTO_SHOOT_WAIT_MS 100
-#define SLIDE_LENGTH 25.400f
+volatile static float SLIDE_LENGTH=25.500f;
 #define MAX_STATE 7
 #define LIMIT_ONE(x)  (( (x) > 1 ) ? 0 : (x))
 #define LIMIT_MAX(x)  (( (x) > (MAX_STATE-1) ) ? 0 : (x))
@@ -61,10 +61,12 @@ static int dart_number=4;
 static int reload_start_flag=1;
 static int shoot_wait_start_flag=1;
 static int tick_start_flag=1;
+static int cd_shoot=0;
 
 static int batch_darts_fired=0;
 static int batch_size=3;
 static volatile int dart_door_flag = 0;
+static int dart_door_open_flag=0;//todo:把标志位搞个结构体，分个类
 BuzzzerInstance *Dart_buzzer;
 const Note_t Auto_Off_beep[] = {
     {NOTE_D5, 200},
@@ -139,41 +141,58 @@ int yaw_abnormol(){
     if (slaveRecInfo->Pixel_Error==0&&slaveRecInfo->Distance==0)return 1;
     return 0;
 }
-
+//todo:用freertos重写整个代码，使其真正实时性
 void DEBUG_STATE(void) {
-    if (dart_number>0) {
-        auto_shoot_cmd_send.Stella_speed = 1.0f;
-        auto_shoot_cmd_send.Liyuu_speed = pos_shooter_output*12.0f;
-        if (global_map->auto_shoot_begin_flag==1)auto_shoot_cmd_flag=1;
-        if (referee_info.DartControlData.dart_station_state==2) {
-            dart_door_flag=1;
-        }
-        if (referee_info.DartControlData.dart_station_state==0 &&dart_door_flag) {
-            auto_shoot_cmd_flag=1;
-            dart_door_flag = 0;
+        if (dart_number>0) {
+            auto_shoot_cmd_send.Stella_speed = 1.0f;
+            auto_shoot_cmd_send.Liyuu_speed = pos_shooter_output*12.0f;
+            if (global_map->auto_shoot_begin_flag==1)auto_shoot_cmd_flag=1;
+            if (referee_info.DartControlData.dart_station_state==2) {
+                dart_door_flag=1;
+                if (tick_start_flag) {
+                    tick_delay_time = DWT_GetTimeline_ms();//裁判
+                    tick_start_flag=0;
+                }
+            }
+        if (DWT_GetTimeline_ms() - tick_delay_time > 3000&& tick_delay_time!=0) {
+            if (referee_info.DartControlData.dart_station_state==0 &&dart_door_flag) {
+                auto_shoot_cmd_flag=1;
+                dart_door_flag = 0;
+                tick_delay_time=0;
+                tick_start_flag=1;
+            }
+            if (DWT_GetTimeline_ms() - tick_delay_time > 6000&& tick_delay_time!=0) {
+                if (referee_info.DartControlData.dart_station_state!=0) {
+                    tick_start_flag = 1;
+                    tick_delay_time = 0;
+                    dart_door_flag = 0;
+                }
+            }
         }
 
-        if (momokaRec_map->slide_status == Slide_in_up ){//&& fabs(auto_shoot_cmd_send.Liyuu_speed - 0.0f) < 0.5f) {
-            ori_angle = Stella_map->measure.total_angle;
-            auto_shoot_cmd_send.Stella_speed = 0.0f;
-        }
-        if (momokaRec_map->slide_status == Slide_in_up &&  auto_shoot_cmd_flag  &&fabsf(pos_shooter_output - 0.0f) < 30.0f) {
-            auto_shoot_cmd_send.Liyuu_speed = 0.0f;
-            momokaSend_map->magnet_flag=1;
-            current_state_AUTO_ON=SLIP_DOWN_STATE_INDEX;
+            if (momokaRec_map->slide_status == Slide_in_up ){//&& fabs(auto_shoot_cmd_send.Liyuu_speed - 0.0f) < 0.5f) {
+                ori_angle = Stella_map->measure.total_angle;
+                auto_shoot_cmd_send.Stella_speed = 0.0f;
+            }
+            if (momokaRec_map->slide_status == Slide_in_up &&  auto_shoot_cmd_flag  &&fabsf(pos_shooter_output - 0.0f) < 30.0f
+                &&abs(global_map->Pixel_offset-slaveRecInfo->Pixel_Error)<1.0&&referee_info.DartControlData.dart_station_state==0) {
+                auto_shoot_cmd_send.Liyuu_speed = 0.0f;
+                momokaSend_map->magnet_flag=1;
+                current_state_AUTO_ON=SLIP_DOWN_STATE_INDEX;
+            }
         }
     }
-}
+
 void SLIP_DOWN_STATE(void) {
     if (tick_start_flag) {
         tick_delay_time = DWT_GetTimeline_ms();
         tick_start_flag=0;
     }
-    if (DWT_GetTimeline_ms() - auto_shoot_delay_time > 15000&& auto_shoot_delay_time!=0) {
+    if (DWT_GetTimeline_ms() - tick_delay_time > 15000&& tick_delay_time!=0) {
         tick_delay_time = 0;
     }
     auto_shoot_cmd_send.Stella_speed = -12.0f;
-    if (Stella_map->measure.total_angle - ori_angle < -SLIDE_LENGTH) {
+    if (Stella_map->measure.total_angle - ori_angle < -25.20f) {
         tick_delay_time=0;
         tick_start_flag=1;
         current_state_AUTO_ON=SLIP_UP_STATE_INDEX;
@@ -186,7 +205,7 @@ void SLIP_UP_STATE(void) {
         tick_delay_time = DWT_GetTimeline_ms();
         tick_start_flag=0;
     }
-    if (DWT_GetTimeline_ms() - auto_shoot_delay_time > 15000&& auto_shoot_delay_time!=0) {
+    if (DWT_GetTimeline_ms() - tick_delay_time > 15000&& tick_delay_time!=0) {
         tick_delay_time = 0;
     }
     if (Stella_map->measure.total_angle - ori_angle > -0.40f ) {
@@ -204,8 +223,11 @@ void SCREW_ADJUST_FORCE_STATE(void) {
         tick_delay_time = DWT_GetTimeline_ms();
         tick_start_flag=0;
     }
-    if (DWT_GetTimeline_ms() - auto_shoot_delay_time > 10000&& auto_shoot_delay_time!=0) {
+    if (DWT_GetTimeline_ms() - auto_shoot_delay_time > 8000&& auto_shoot_delay_time!=0) {
         tick_delay_time = 0;
+        current_state_AUTO_ON=EMERGENCY_STATE_INDEX;
+    }
+    if (Sensor_force>=1500||Sensor_force<=300) {
         current_state_AUTO_ON=EMERGENCY_STATE_INDEX;
     }
     if (abs(testtt) < 1.0f) {
@@ -235,7 +257,7 @@ void TRIGGER_ON_STATE(void) {
 
 void RELOAD_STATE(void) {
     if (reload_start_flag) {
-        auto_shoot_delay_time = DWT_GetTimeline_ms();
+        auto_shoot_delay_time = DWT_GetTimeline_ms();//todo:这里auto_shoot_delay_time与tick_delay_time重复了
         reload_start_flag=0;
     }  // 开始计时
     if (DWT_GetTimeline_ms() - auto_shoot_delay_time > AUTO_SHOOT_DELAY_MS && auto_shoot_delay_time!=0) {
@@ -262,23 +284,44 @@ void RELOAD_STATE(void) {
 }
 void WAIT_TRIGGER_STATE(void)
 {
-
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
     auto_shoot_cmd_send.Stella_speed = 0.0f;
     auto_shoot_cmd_send.Trigger_Location = 0.0f;
-    // if (slaveRecInfo->Pixel_Error==-660&&referee_info.DartControlData.dart_station_state==0) {
-    //     auto_gimbal_cmd_send.yaw_speed=-2.0f;
-    // }
-    // else if (slaveRecInfo->Pixel_Error!=-660) {
-    auto_gimbal_cmd_send.yaw_speed = 0.0f;
-        if (global_map->auto_shoot_begin_flag == 1 || auto_shoot_cmd_flag) {
-            batch_darts_fired = 0;
-            global_map->auto_shoot_begin_flag = 0;
-            auto_shoot_cmd_flag = 0;
-            current_state_AUTO_ON = DEBUG_STATE_INDEX;
+    if (referee_info.DartControlData.dart_station_state==2) {
+        dart_door_flag=1;
+        auto_gimbal_cmd_send.yaw_speed=0;
+        if (tick_start_flag) {
+            tick_delay_time = DWT_GetTimeline_ms();//裁判
+            tick_start_flag=0;
         }
-    // }
+    }
+    if (referee_info.DartControlData.dart_station_state==0&&dart_door_flag) {//todo:把标志位规范一下，代码不同人写的，用了功能相同的两个标志位，简化为一个标志位
+        dart_door_open_flag=1;
+    }
 
+    if (dart_door_open_flag) {
+        if (slaveRecInfo->Pixel_Error==-660) {
+            auto_gimbal_cmd_send.yaw_speed=-6000.0f;
+            cd_shoot=1;
+        }
+        else{
+            if (cd_shoot==1) {
+                cd_shoot=2;
+            }
+            auto_gimbal_cmd_send.yaw_speed = 0.0f;
+            if (global_map->auto_shoot_begin_flag == 1 || auto_shoot_cmd_flag) {
+                batch_darts_fired = 0;
+                global_map->auto_shoot_begin_flag = 0;
+                auto_shoot_cmd_flag = 0;
+                dart_door_open_flag=0;
+             if (cd_shoot==2) {
+                 std_energy_pos-=9500;
+             }
+                // SLIDE_LENGTH=25.450f;
+                current_state_AUTO_ON = DEBUG_STATE_INDEX;
+            }
+        }
+    }
 }
 void EMERGENCY_STATE(void) {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
@@ -309,6 +352,7 @@ void AUTO_OFF_FUNCTION(void) {
     current_state_AUTO_ON = 0;
     dart_number=4;
     batch_darts_fired=0;
+    cd_shoot=0;
     if (global_map->std_energy_pos_flag) {
         std_energy_pos = Liyuu_map->measure.total_angle/50.0f;
         global_map->std_energy_pos_flag = 0;
@@ -319,9 +363,9 @@ void AUTO_OFF_FUNCTION(void) {
 }
 void AUTO_ON_FUNCTION(void) {
     momokaSend_map->OnLine = AUTO_ON;
-    BuzzerPlaySequence(Auto_Off_beep, Auto_Off_beep,
-sizeof(Auto_Off_beep)/sizeof(Auto_Off_beep[0]),
-ALARM_LEVEL_HIGH);
+//     BuzzerPlaySequence(Auto_Off_beep, Auto_Off_beep,
+// sizeof(Auto_Off_beep)/sizeof(Auto_Off_beep[0]),
+// ALARM_LEVEL_HIGH);
     //yaw轴对准
     if (yaw_abnormol()){
         aim_output=0;
@@ -406,31 +450,38 @@ void AutoAim_Task() {
     Pixel_Error_last=slaveRecInfo->Pixel_Error;
 
 
-
+//老标参数在注释
     switch (dart_order) {
-        case 1://1335.5-10.0-7.0  875.5 148
+        case 1:
             adv_CMD_data[0]+=global_map->adv_dCMD_data/10000.0f;
-            CMD_Pixel_offset[0]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set =883.0+ adv_CMD_data[0];
-            global_map->Pixel_offset = 130+CMD_Pixel_offset[0];
+            CMD_Pixel_offset[0]+=(float)global_map->CMD_dPixel_offset/10000.0f;
+            global_map->adv_force_set =881.5f-1.5f+ adv_CMD_data[0];//883.0
+            global_map->Pixel_offset = 115+(int)CMD_Pixel_offset[0];//130
             break;
         case 2:
             adv_CMD_data[1]+=global_map->adv_dCMD_data/10000.0f;
-            CMD_Pixel_offset[1]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 884+ adv_CMD_data[1];//1331.5+1.5+1.5
-            global_map->Pixel_offset = 115+CMD_Pixel_offset[1];// 20+20+5+20
+            CMD_Pixel_offset[1]+=(float)global_map->CMD_dPixel_offset/10000.0f;
+            global_map->adv_force_set = 881.0f-4.0f+ adv_CMD_data[1];//884
+            global_map->Pixel_offset = 128+(int)CMD_Pixel_offset[1];//115
             break;
         case 3:
             adv_CMD_data[2]+=global_map->adv_dCMD_data/10000.0f;
-            CMD_Pixel_offset[2]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set =880.0+ adv_CMD_data[2];//1367  1302.0
-            global_map->Pixel_offset = 95+CMD_Pixel_offset[2];//-1  44+20+15+10
+            CMD_Pixel_offset[2]+=(float)global_map->CMD_dPixel_offset/10000.0f;
+            global_map->adv_force_set =880.0f-4.0f+ adv_CMD_data[2];//879
+            global_map->Pixel_offset = 55+(int)CMD_Pixel_offset[2];//84
             break;
         case 4:
             adv_CMD_data[3]+=global_map->adv_dCMD_data/10000.0f;
-            CMD_Pixel_offset[3]+=global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 879+ adv_CMD_data[3];//1320.0-0.5-1
-            global_map->Pixel_offset = 84+CMD_Pixel_offset[3];//54+10-15
+            CMD_Pixel_offset[3]+=(float)global_map->CMD_dPixel_offset/10000.0f;
+            if (cd_shoot==2) {
+                global_map->adv_force_set = 1038+ adv_CMD_data[3];
+                global_map->Pixel_offset = 140+CMD_Pixel_offset[3];
+            }
+            if (cd_shoot==0) {
+                global_map->adv_force_set = 879+ adv_CMD_data[3];
+                global_map->Pixel_offset = 98+CMD_Pixel_offset[3];//98
+            }//880  好879
+
             break;
         default:
             break;

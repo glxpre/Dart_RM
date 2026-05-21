@@ -60,6 +60,7 @@ static uint8_t reload_flag = 1;    //换弹标志位，1为允许换弹
 static uint8_t auto_flag = 1;    //自动发射介入标志位，1为介入
 static uint8_t std_set_flag = 1;
 
+extern float Sensor_force;
 static uint8_t testtt=0;
 
 void *get_rcdata(void) {
@@ -220,6 +221,9 @@ static void EmergencyHandler() {
         shoot_cmd_send.reload_mode = Reload_enable;
 
         LOGINFO("[CMD] reinstate, robot ready");
+    }
+    if (Sensor_force>=1500) {
+        robot_state = ROBOT_STOP;
     }
 }
 

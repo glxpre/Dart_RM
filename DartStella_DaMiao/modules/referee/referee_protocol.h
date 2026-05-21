@@ -75,6 +75,7 @@ typedef enum
 	ID_event_data = 0x0101,				   // 场地事件数据
 	ID_supply_projectile_action = 0x0102,  // 场地补给站动作标识数据
 	ID_supply_projectile_booking = 0x0103, // 场地补给站预约子弹数据
+	ID_dart_info=0x0105,				   //飞镖中靶数量与击打目标与剩余发射时间
 	ID_game_robot_state = 0x0201,		   // 机器人状态数据
 	ID_power_heat_data = 0x0202,		   // 实时功率热量数据
 	ID_game_robot_pos = 0x0203,			   // 机器人位置数据
@@ -96,6 +97,7 @@ typedef enum
 	LEN_game_robot_HP = 32,						 // 0x0003
 	LEN_event_data = 4,							 // 0x0101
 	LEN_supply_projectile_action = 4,			 // 0x0102
+	LEN_dart_info = 3,						     // 0x0105
 	LEN_game_robot_state = 13,					 // 0x0201
 	LEN_power_heat_data = 16,					 // 0x0202
 	LEN_game_robot_pos = 16,					 // 0x0203
@@ -161,6 +163,12 @@ typedef struct
 	uint8_t supply_projectile_step;
 	uint8_t supply_projectile_num;
 } ext_supply_projectile_action_t;
+
+typedef struct
+{
+	uint8_t dart_remaining_time;
+	uint16_t dart_info;
+}dart_info_t;
 
 /* ID: 0X0201  Byte: 13    机器人性能体系数据 */
 typedef struct
