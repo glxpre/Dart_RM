@@ -94,7 +94,7 @@ typedef enum
 {
 	LEN_game_state = 11,							 // 0x0001
 	LEN_game_result = 1,						 // 0x0002
-	LEN_game_robot_HP = 32,						 // 0x0003
+	LEN_game_robot_HP = 16,						 // 0x0003
 	LEN_event_data = 4,							 // 0x0101
 	LEN_supply_projectile_action = 4,			 // 0x0102
 	LEN_dart_info = 3,						     // 0x0105
@@ -114,12 +114,13 @@ typedef enum
 /****************************接收数据的详细说明****************************/
 /****************************接收数据的详细说明****************************/
 
-/* ID: 0x0001  Byte:  3    比赛状态数据 */
+/* ID: 0x0001  Byte:  11    比赛状态数据 */
 typedef struct
 {
 	uint8_t game_type : 4;
 	uint8_t game_progress : 4;
 	uint16_t stage_remain_time;
+	uint64_t SyncTimeStamp;
 } ext_game_state_t;
 
 /* ID: 0x0002  Byte:  1    比赛结果数据 */
@@ -131,23 +132,15 @@ typedef struct
 /* ID: 0x0003  Byte:  32    比赛机器人血量数据 */
 typedef struct
 {
-    uint16_t red_1_robot_HP;
-    uint16_t red_2_robot_HP;
-    uint16_t red_3_robot_HP;
-    uint16_t red_4_robot_HP;
-    uint16_t red_5_robot_HP;
-    uint16_t red_7_robot_HP;
-    uint16_t red_outpost_HP;
-    uint16_t red_base_HP;
-    uint16_t blue_1_robot_HP;
-    uint16_t blue_2_robot_HP;
-    uint16_t blue_3_robot_HP;
-    uint16_t blue_4_robot_HP;
-    uint16_t blue_5_robot_HP;
-    uint16_t blue_7_robot_HP;
-    uint16_t blue_outpost_HP;
-    uint16_t blue_base_HP;
-}ext_game_robot_HP_t;
+	uint16_t ally_1_robot_HP;
+	uint16_t ally_2_robot_HP;
+	uint16_t ally_3_robot_HP;
+	uint16_t ally_4_robot_HP;
+	uint16_t reserved;
+	uint16_t ally_7_robot_HP;
+	uint16_t ally_outpost_HP;
+	uint16_t ally_base_HP;
+} ext_game_robot_HP_t;
 
 /* ID: 0x0101  Byte:  4    场地事件数据 */
 typedef struct

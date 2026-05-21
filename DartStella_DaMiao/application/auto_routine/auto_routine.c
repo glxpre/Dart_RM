@@ -136,6 +136,53 @@ void AutoAim_Init() {
 
 static int auto_shoot_cmd_flag=0;
 
+
+
+
+typedef enum {
+    Dart_station_close,
+    Dart_station_open,
+    Dart_station_active_close2open,
+    Dart_station_active_open2close,
+}Dart_station_state_enum;
+void check_state(Dart_station_state_enum* state,Dart_station_state_enum* last_state) {
+    switch (referee_info.DartControlData.dart_station_state) {
+        case(1) :
+            if (*state!=Dart_station_close) {
+                *last_state=*state;
+            }
+            *state=Dart_station_close;
+            break;
+        case(0) :
+            if (*state!=Dart_station_open) {
+                *last_state=*state;
+            }
+            *state=Dart_station_open;
+            break;
+        case(2) :
+            if (*state!=Dart_station_active_close2open||*state!=Dart_station_active_open2close) {
+                *last_state=*state;
+            }
+            if (*state==Dart_station_open) {
+                *state=Dart_station_active_open2close;
+            }
+            if (*state==Dart_station_close) {
+                *state=Dart_station_active_close2open;
+            }
+            break;
+    }
+}
+typedef struct {
+    Dart_station_state_enum state;
+    Dart_station_state_enum last_state;
+    void (*check_state)(Dart_station_state_enum* state,Dart_station_state_enum* last_state);
+}Dart_station;
+
+
+
+
+
+
 int yaw_abnormol(){
     if (slaveRecInfo->Pixel_Error==-660)return 1;
     if (slaveRecInfo->Pixel_Error==0&&slaveRecInfo->Distance==0)return 1;
@@ -147,7 +194,7 @@ void DEBUG_STATE(void) {
             auto_shoot_cmd_send.Stella_speed = 1.0f;
             auto_shoot_cmd_send.Liyuu_speed = pos_shooter_output*12.0f;
             if (global_map->auto_shoot_begin_flag==1)auto_shoot_cmd_flag=1;
-            if (referee_info.DartControlData.dart_station_state==2) {
+            if (referee_info.DartControlData.dart_station_state==2 && referee_info.GameState.game_progress == 4) {
                 dart_door_flag=1;
                 if (tick_start_flag) {
                     tick_delay_time = DWT_GetTimeline_ms();//裁判
@@ -155,7 +202,7 @@ void DEBUG_STATE(void) {
                 }
             }
         if (DWT_GetTimeline_ms() - tick_delay_time > 3000&& tick_delay_time!=0) {
-            if (referee_info.DartControlData.dart_station_state==0 &&dart_door_flag) {
+            if (referee_info.DartControlData.dart_station_state==0 &&dart_door_flag&& referee_info.GameState.game_progress == 4) {
                 auto_shoot_cmd_flag=1;
                 dart_door_flag = 0;
                 tick_delay_time=0;
@@ -175,7 +222,7 @@ void DEBUG_STATE(void) {
                 auto_shoot_cmd_send.Stella_speed = 0.0f;
             }
             if (momokaRec_map->slide_status == Slide_in_up &&  auto_shoot_cmd_flag  &&fabsf(pos_shooter_output - 0.0f) < 30.0f
-                &&abs(global_map->Pixel_offset-slaveRecInfo->Pixel_Error)<1.0&&referee_info.DartControlData.dart_station_state==0) {
+                &&abs(global_map->Pixel_offset-slaveRecInfo->Pixel_Error)<1.0&&referee_info.DartControlData.dart_station_state==0&& referee_info.GameState.game_progress == 4) {
                 auto_shoot_cmd_send.Liyuu_speed = 0.0f;
                 momokaSend_map->magnet_flag=1;
                 current_state_AUTO_ON=SLIP_DOWN_STATE_INDEX;
@@ -295,36 +342,37 @@ void WAIT_TRIGGER_STATE(void)
             tick_start_flag=0;
         }
     }
-    if (dart_door_flag) {//todo:把标志位规范一下，代码不同人写的，用了功能相同的两个标志位，简化为一个标志位
+    if (dart_door_flag) {
+        //todo:把标志位规范一下，代码不同人写的，用了功能相同的两个标志位，简化为一个标志位
         if (referee_info.DartControlData.dart_station_state==0)
             dart_door_open_flag=1;
         if (referee_info.DartControlData.dart_station_state==1)
             dart_door_flag=0;
     }
 
-    // if (dart_door_open_flag) {
-    //     if (slaveRecInfo->Pixel_Error==-660) {
-    //         auto_gimbal_cmd_send.yaw_speed=-6000.0f;
-    //         cd_shoot=1;
-    //     }
-    //     else{
-    //         if (cd_shoot==1) {
-    //             cd_shoot=2;
-    //         }
+    if (dart_door_open_flag) {
+        if (slaveRecInfo->Pixel_Error==-660) {
+            auto_gimbal_cmd_send.yaw_speed=-6000.0f;
+            cd_shoot=1;
+        }
+        else{
+            if (cd_shoot==1) {
+                cd_shoot=2;
+            }
             auto_gimbal_cmd_send.yaw_speed = 0.0f;
             if (global_map->auto_shoot_begin_flag == 1 || auto_shoot_cmd_flag) {
                 batch_darts_fired = 0;
                 global_map->auto_shoot_begin_flag = 0;
                 auto_shoot_cmd_flag = 0;
                 dart_door_open_flag=0;
-             // if (cd_shoot==2) {
-             //     std_energy_pos-=9500;
-             // }
+             if (cd_shoot==2) {
+                 std_energy_pos-=9500;
+             }
                 // SLIDE_LENGTH=25.450f;
                 current_state_AUTO_ON = DEBUG_STATE_INDEX;
             }
-    //     }
-    // }
+        }
+    }
 }
 void EMERGENCY_STATE(void) {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;

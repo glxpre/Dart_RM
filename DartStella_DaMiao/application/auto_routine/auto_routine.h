@@ -18,6 +18,8 @@ typedef enum {
     EMERGENCY_STATE_INDEX,
 }STATE;
 
+
+
 Shoot_Ctrl_Cmd_s *get_auto_shoot_send(void);
 void AutoAim_Init();
 void AutoAim_Task();
