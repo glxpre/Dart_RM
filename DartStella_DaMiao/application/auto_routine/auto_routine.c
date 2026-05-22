@@ -64,7 +64,7 @@ static int reload_start_flag=1;
 static int shoot_wait_start_flag=1;
 static int tick_start_flag=1;
 static int tick_dart_station_state=1;
-static int cd_shoot=0;
+static int cd_shoot=0;////////////////////////////////////////////////////////////////////////////////////////
 static int qwq_flag=1;
 static float pos_shooter_output_limit=30.0f;
 
@@ -257,7 +257,7 @@ void DEBUG_STATE(void) {
                 }
                 tick_dart_station_state=referee_info.DartControlData.dart_station_state;
                 if (dart_station.state==Dart_station_open&&dart_station.last_state==Dart_station_active_close2open
-                    &&tick_delay_time>500) {//仓门完全开启
+                    &&tick_delay_time>500) {//仓门完全开启 tick>500做保护
                     auto_shoot_cmd_flag=1;
                     tick_delay_time=0;
                 }
@@ -587,8 +587,8 @@ void AutoAim_Task() {
                 global_map->Pixel_offset = 140+CMD_Pixel_offset[3];
             }
             if (cd_shoot==1) {
-                global_map->adv_force_set = 879-3.0-3.0+ adv_CMD_data[3];
-                global_map->Pixel_offset = 74+CMD_Pixel_offset[3];//98
+                global_map->adv_force_set = 879-3.0-3.0+ adv_CMD_data[3];//879-3.0-3.0
+                global_map->Pixel_offset = 74+CMD_Pixel_offset[3];//98     74
             }//880  好879
 
             break;
