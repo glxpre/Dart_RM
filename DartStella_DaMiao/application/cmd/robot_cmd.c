@@ -10,7 +10,6 @@
 #include "ins_task.h"
 #include "message_center.h"
 #include "dji_motor.h"
-#include "auto_routine.h"
 #include "super_cap.h"
 
 // bsp
@@ -42,7 +41,6 @@ static Gimbal_Upload_Data_s gimbal_fetch_data; // 从云台获取的反馈信息
 static Publisher_t *shoot_cmd_pub;           // 发射控制消息发布者
 static Subscriber_t *shoot_feed_sub;         // 发射反馈信息订阅者
 static Shoot_Ctrl_Cmd_s shoot_cmd_send;      // 传递给发射的控制信息
-static Shoot_Ctrl_Cmd_s *auto_shoot_cmd_send_map;      // 传递给发射的控制信息
 static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
 
 static Robot_Status_e robot_state; // 机器人整体工作状态
@@ -68,7 +66,6 @@ void *get_rcdata(void) {
 }
 void RobotCMDInit() {
     global_map=get_global();
-    auto_shoot_cmd_send_map = get_auto_shoot_send();
     // global_map->auto_shoot_end_flag = 1;
     momokaSendInfo=get_momokaSend();
 
@@ -107,9 +104,8 @@ static void RemoteControlSet() {
 
         gimbal_cmd_send.gimbal_mode = GIMBAL_VISION_MODE;
         shoot_cmd_send.auto_mode = AUTO_ON;
-
-        auto_shoot_cmd_send_map->liyuu_=Speed_Control;
-        auto_shoot_cmd_send_map->Liyuu_speed= 30000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);  //调整丝杆
+        shoot_cmd_send.liyuu_ = Speed_Control;
+        shoot_cmd_send.Liyuu_speed = 30000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);  //调整丝杆
         // auto_shoot_cmd_send_map->Trigger_Location = -(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
 
         // CANCommSend(Cboard_can_comm , (uint8_t *)momokaSendInfo);

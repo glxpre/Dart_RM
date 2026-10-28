@@ -16,7 +16,7 @@
 #include "shoot.h"
 #include "buzzer_alarm/buzzer_alarm.h"
 #include "rm_referee.h"
-#define AUTO_SHOOT_DELAY_MS 1000  // 延迟500ms再进入下一次发射
+#define AUTO_SHOOT_DELAY_MS 1000  // 延迟1s再进入下一次发射
 #define AUTO_SHOOT_WAIT_MS 100
 volatile static float SLIDE_LENGTH=25.500f;
 #define MAX_STATE 7
@@ -55,17 +55,16 @@ uint8_t dart_order = 1;    //镖镖序号
 extern float Sensor_force;
 static float ori_angle ; //自动发射开始时位置
 static float std_energy_pos;  //储能丝杆标准位
-static float energy_angle_map;  //倍数缩放的丝杆角度
 
 static int current_state_MAIN = 0;
 static int current_state_AUTO_ON=DEBUG_STATE_INDEX;
 static int dart_number=4;
 static int reload_start_flag=1;
-static int shoot_wait_start_flag=1;
-static int tick_start_flag=1;
+
 static int tick_dart_station_state=1;
 static int cd_shoot=0;
 static int qwq_flag=1;
+static float pre_force_output_limit = 2.0f;
 static float pos_shooter_output_limit=30.0f;
 
 static int batch_darts_fired=0;
@@ -84,9 +83,29 @@ const Note_t Auto_Off_beep[] = {
 {NOTE_G4, 400},
 
 };
+static float state_enter_tick;
+static int static_enter_index=-1;
+static uint8_t state_enter_dirty = 1;
 
-Shoot_Ctrl_Cmd_s *get_auto_shoot_send() {
-    return &auto_shoot_cmd_send;
+static uint8_t state_enter_update()
+{
+    if (static_enter_index != current_state_AUTO_ON )
+    {
+        state_enter_tick = DWT_GetTimeline_ms();
+        static_enter_index = current_state_AUTO_ON;
+        return 1;
+    }
+    return 0;
+}
+
+static float state_elapsed_ms()
+{
+    float t = DWT_GetTimeline_ms() - state_enter_tick;
+    if (t<0.0f)
+    {
+        t=0.0f;
+    }
+    return t;
 }
 void AutoAim_Init() {
     global_map = get_global();
@@ -131,6 +150,7 @@ void AutoAim_Init() {
         .Kd = 0.8f,
         .MaxOut = 5000.0f,
     };
+    // PIDInit(&preforce_shooter_pid, &preforce_shooter_config);
     PIDInit(&pos_shooter_pid, &pos_shooter_config);
 
     auto_shoot_cmd_pub = PubRegister("auto_shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
@@ -139,75 +159,95 @@ void AutoAim_Init() {
     auto_gimbal_cmd_pub = PubRegister("auto_gimbal_cmd", sizeof(Gimbal_Ctrl_Cmd_s));
 }
 
-static int auto_shoot_cmd_flag=0;
 
 
+static AutoShootRequestSource_e auto_shoot_request_source = AUTO_SHOOT_REQUEST_NONE;
+static Dart_station_state_enum dart_station_state = Dart_station_close;
+static Dart_station_state_enum dart_station_last_state = Dart_station_close;
 
 
-typedef enum {
-    Dart_station_close,
-    Dart_station_open,
-    Dart_station_active_close2open,
-    Dart_station_active_open2close,
-}Dart_station_state_enum;
-void check_state(Dart_station_state_enum* state,Dart_station_state_enum* last_state) {
-    switch (referee_info.DartControlData.dart_station_state) {
+//将裁判系统发来的舱门数据进行更新
+static void UpdateDartStationState(uint8_t referee_state) {
+    switch (referee_state) {
         case(1) :
-            if (*state!=Dart_station_close) {
-                *last_state=*state;
+            if (dart_station_state != Dart_station_close) {
+                dart_station_last_state = dart_station_state;
             }
-            *state=Dart_station_close;
+            dart_station_state = Dart_station_close;
             break;
         case(0) :
-            if (*state!=Dart_station_open) {
-                *last_state=*state;
+            if (dart_station_state != Dart_station_open) {
+                dart_station_last_state = dart_station_state;
             }
-            *state=Dart_station_open;
+            dart_station_state = Dart_station_open;
             break;
         case(2) :
-            if (*state!=Dart_station_active_close2open||*state!=Dart_station_active_open2close) {
-                *last_state=*state;
+            if (dart_station_state != Dart_station_active_close2open &&
+                dart_station_state != Dart_station_active_open2close) {
+                dart_station_last_state = dart_station_state;
             }
-            if (*state==Dart_station_open) {
-                *state=Dart_station_active_open2close;
+            if (dart_station_state == Dart_station_open) {
+                dart_station_state = Dart_station_active_open2close;
             }
-            if (*state==Dart_station_close) {
-                *state=Dart_station_active_close2open;
+            if (dart_station_state == Dart_station_close) {
+                dart_station_state = Dart_station_active_close2open;
             }
             break;
     }
 }
-struct struct_dart_station{
-    Dart_station_state_enum state;
-    Dart_station_state_enum last_state;
-    void (*check_state)(Dart_station_state_enum* state,Dart_station_state_enum* last_state);
-};
-struct struct_dart_station dart_station={
-    .state = Dart_station_close,
-    .last_state = Dart_station_close,
-    .check_state = check_state,
-};
 
-//Todo:把这个时间延迟的逻辑封装一下，写了一点，懒得写了
+//遥控
+static void UpdateRemoteShootRequest(void)
+{
+    if (global_map->auto_shoot_begin_flag && auto_shoot_request_source == AUTO_SHOOT_REQUEST_NONE) {
+        auto_shoot_request_source = AUTO_SHOOT_REQUEST_REMOTE;
+    }
+}
 
-// void tick_time_start(float* tick_delay_time,int* tick_start_flag,float* tick_start_time){
-//     *tick_start_time= DWT_GetTimeline_ms();
-// }
-// float tick_delay_time(float* tick_delay_time,int* tick_start_flag,float* tick_start_time) {
-//     tick_start_time(tick_delay_time,tick_start_flag,tick_start_time);
-// }
-// struct struct_time_tick{
-//     float tick_delay_time;
-//     int tick_start_flag;
-//     float tick_start_time;
-//     float (*tick_delay_time)(float* tick_delay_time,int* tick_start_flag,float* tick_start_time);
-// };
-//
-// struct struct_time_tick time_tick={
-//     .tick_delay_time =0,
-//     .tick_start_flag = 1,
-// };
+//裁判系统
+static void UpdateRefereeShootRequest(void)
+{
+    uint8_t station_state = referee_info.DartControlData.dart_station_state;
 
+    if (referee_info.GameState.game_progress != 4) {
+        tick_dart_station_state = station_state;
+        tick_delay_time_start = 0.0f;
+        tick_delay_time_end = 0.0f;
+        tick_delay_time = 0.0f;
+        return;
+    }
+
+    UpdateDartStationState(station_state);
+
+    if (tick_dart_station_state == 1 && station_state == 2) {
+        tick_delay_time_start = DWT_GetTimeline_ms();
+        tick_delay_time_end = tick_delay_time_start;
+    } else if (tick_dart_station_state == 2 && station_state == 2) {
+        tick_delay_time_end = DWT_GetTimeline_ms();
+    } else if (tick_dart_station_state == 2 && station_state == 0) {
+        tick_delay_time = tick_delay_time_end - tick_delay_time_start;
+        tick_delay_time_start = 0.0f;
+        tick_delay_time_end = 0.0f;
+    }
+
+    tick_dart_station_state = station_state;
+
+    if (dart_station_state == Dart_station_open &&
+        dart_station_last_state == Dart_station_active_close2open &&
+        tick_delay_time > 500.0f &&
+        auto_shoot_request_source == AUTO_SHOOT_REQUEST_NONE) {
+        auto_shoot_request_source = AUTO_SHOOT_REQUEST_REFEREE;
+        tick_delay_time = 0.0f;
+    }
+}
+
+//滑台和丝杆的准入条件，用在DEBUG_STATE里面
+static uint8_t AutoShootReadyToStart(void)
+{
+    return momokaRec_map->slide_status == Slide_in_up
+    // &&fabsf(pos_shooter_output) < pos_shooter_output_limit
+    ;
+}
 
 int yaw_abnormol(){
     if (slaveRecInfo->Pixel_Error==-660)return 1;
@@ -215,147 +255,95 @@ int yaw_abnormol(){
     return 0;
 }
 
-//todo:用freertos重写整个代码，使其真正实时性
+//准备阶段
 void DEBUG_STATE(void) {
-        if (dart_number>0) {
-            auto_shoot_cmd_send.Stella_speed = 1.0f;
-            auto_shoot_cmd_send.Liyuu_speed = pos_shooter_output*12.0f;
-            if (global_map->auto_shoot_begin_flag==1)auto_shoot_cmd_flag=1;
-        //     if (referee_info.DartControlData.dart_station_state==2 && referee_info.GameState.game_progress == 4) {
-        //         dart_door_flag=1;
-        //         if (tick_start_flag) {
-        //             tick_delay_time = DWT_GetTimeline_ms();//裁判
-        //             tick_start_flag=0;
-        //         }
-        //     }
-        // if (DWT_GetTimeline_ms() - tick_delay_time > 3000&& tick_delay_time!=0) {
-        //     if (referee_info.DartControlData.dart_station_state==0 &&dart_door_flag&& referee_info.GameState.game_progress == 4) {
-        //         auto_shoot_cmd_flag=1;
-        //         dart_door_flag = 0;
-        //         tick_delay_time=0;
-        //         tick_start_flag=1;
-        //     }
-        //     if (DWT_GetTimeline_ms() - tick_delay_time > 6000&& tick_delay_time!=0) {
-        //         if (referee_info.DartControlData.dart_station_state!=0) {
-        //             tick_start_flag = 1;
-        //             tick_delay_time = 0;
-        //             dart_door_flag = 0;
-        //         }
-        //     }
-        // }
-            if (referee_info.GameState.game_progress==4) {
-                dart_station.check_state(&dart_station.state,&dart_station.last_state);
-                if (tick_dart_station_state==1&&referee_info.DartControlData.dart_station_state==2) {
-                    tick_delay_time_start=DWT_GetTimeline_ms();
-                }
-                if (tick_dart_station_state==referee_info.DartControlData.dart_station_state&&tick_dart_station_state==2) {//开仓门信号计时
-                tick_delay_time_end=DWT_GetTimeline_ms();
-                }
-                if (tick_dart_station_state==2&&referee_info.DartControlData.dart_station_state==0) {
-                    tick_delay_time=tick_delay_time_end-tick_delay_time_start;
-                    tick_delay_time_start=0;
-                    tick_delay_time_end=0;
-                }
-                tick_dart_station_state=referee_info.DartControlData.dart_station_state;
-                if (dart_station.state==Dart_station_open&&dart_station.last_state==Dart_station_active_close2open
-                    &&tick_delay_time>500) {//仓门完全开启 tick>500做保护
-                    auto_shoot_cmd_flag=1;
-                    tick_delay_time=0;
-                }
-            }
-            if (cd_shoot&&auto_shoot_cmd_flag) {
-                if (slaveRecInfo->Pixel_Error==-660){
-                    if (qwq_flag)
-                    {
-                        cd_shoot=2;
-                        qwq_flag=0;
-                        std_energy_pos-=8800;
-                        pos_shooter_output_limit=50.0f;
-                    }
-                    auto_gimbal_cmd_send.yaw_speed=-28000.0f;
-                }
-            }
-            if (momokaRec_map->slide_status == Slide_in_up ){//&& fabs(auto_shoot_cmd_send.Liyuu_speed - 0.0f) < 0.5f) {
-                ori_angle = Stella_map->measure.total_angle;
-                auto_shoot_cmd_send.Stella_speed = 0.0f;
-            }
-            if (momokaRec_map->slide_status == Slide_in_up &&  auto_shoot_cmd_flag  &&fabsf(pos_shooter_output - 0.0f) < pos_shooter_output_limit
-                &&abs((global_map->Pixel_offset-slaveRecInfo->Pixel_Error))<4&&referee_info.DartControlData.dart_station_state==0//Todo：此处有惊喜(bug)
-                // && referee_info.GameState.game_progress == 4
-                ) {
-                auto_shoot_cmd_send.Liyuu_speed = 0.0f;
-                momokaSend_map->magnet_flag=1;
-                current_state_AUTO_ON=SLIP_DOWN_STATE_INDEX;
-            }
-        }
+
+    if (dart_number <= 0) {
+        return;
     }
-static float error_11454;
+    auto_shoot_cmd_send.Stella_speed = 1.0f;
+    auto_shoot_cmd_send.Liyuu_speed = fabsf(shoot_cmd_recv.Liyuu_speed) > 0.0f  ? shoot_cmd_recv.Liyuu_speed: pos_shooter_output * 12.0f;
+     //前哨转基地代码
+   // if (cd_shoot && auto_shoot_request_source != AUTO_SHOOT_REQUEST_NONE &&
+   //      slaveRecInfo->Pixel_Error == -660) {
+   //      if (qwq_flag) {
+   //          cd_shoot = 2;
+   //          qwq_flag = 0;
+   //          std_energy_pos -= 8800;
+   //          pos_shooter_output_limit = 50.0f;
+   //      }
+   //      auto_gimbal_cmd_send.yaw_speed = -28000.0f;
+   //  }
+
+    //滑台在上面，记录电机初始位置
+    if (momokaRec_map->slide_status == Slide_in_up) {
+        ori_angle = Stella_map->measure.total_angle;
+        auto_shoot_cmd_send.Stella_speed = 0.0f;
+    }
+
+    if (auto_shoot_request_source != AUTO_SHOOT_REQUEST_NONE && AutoShootReadyToStart()) {
+        auto_shoot_cmd_send.Liyuu_speed = 0.0f;
+        momokaSend_map->magnet_flag = 1;
+        auto_shoot_request_source = AUTO_SHOOT_REQUEST_NONE;
+        global_map->auto_shoot_begin_flag = 0;
+        current_state_AUTO_ON = SLIP_DOWN_STATE_INDEX;
+    }
+}
+
+//滑台下拉阶段
 void SLIP_DOWN_STATE(void) {
-    if (tick_start_flag) {
-        tick_delay_time = DWT_GetTimeline_ms();
-        tick_start_flag=0;
-    }
-    if (DWT_GetTimeline_ms() - tick_delay_time > 15000&& tick_delay_time!=0) {
-        tick_delay_time = 0;
+    if (state_elapsed_ms() > 5000)
+    {
+        LOGERROR("[dart] slide DOWN timeout");
+        current_state_AUTO_ON = EMERGENCY_STATE_INDEX;
+        return;
     }
     auto_shoot_cmd_send.Stella_speed = -11.5f;
-    error_11454=Stella_map->measure.total_angle - ori_angle;
     if (Stella_map->measure.total_angle - ori_angle < -25.21f) {
-        tick_delay_time=0;
-        tick_start_flag=1;
         current_state_AUTO_ON=SLIP_UP_STATE_INDEX;
     }
 
 }
+
+//滑台上拉阶段
 void SLIP_UP_STATE(void) {
     auto_shoot_cmd_send.Stella_speed = 13.5f;
-    if (tick_start_flag) {
-        tick_delay_time = DWT_GetTimeline_ms();
-        tick_start_flag=0;
-    }
-    if (DWT_GetTimeline_ms() - tick_delay_time > 15000&& tick_delay_time!=0) {
-        tick_delay_time = 0;
+    if (state_elapsed_ms() > 5000)
+    {
+        LOGERROR("[dart] slide UP timeout");
+        current_state_AUTO_ON = EMERGENCY_STATE_INDEX;
+        return;
     }
     if (Stella_map->measure.total_angle - ori_angle > -0.30f ) {
-        tick_delay_time=0;
-        tick_start_flag=1;
         current_state_AUTO_ON=SCREW_ADJUST_FORCE_STATE_INDEX;
         auto_shoot_cmd_send.Stella_speed = 0.0f;
     }
 }
+
+//力闭环校准
 void SCREW_ADJUST_FORCE_STATE(void) {
     auto_shoot_cmd_send.Stella_speed = 0.0f;
     force_shooter_output = PIDCalculate(&force_shooter_pid, Sensor_force, global_map->adv_force_set);
     auto_shoot_cmd_send.Liyuu_speed = -force_shooter_output*17.0f;
-    if (tick_start_flag) {
-        tick_delay_time = DWT_GetTimeline_ms();
-        tick_start_flag=0;
+    //超时保护
+    if (state_elapsed_ms() > 15000)
+    {
+        LOGERROR("[dart] SCREW_ADJUST_FORCE_STATE timeout");
+        current_state_AUTO_ON = EMERGENCY_STATE_INDEX;
+        return;
     }
-    if (DWT_GetTimeline_ms() - auto_shoot_delay_time > 8000&& auto_shoot_delay_time!=0) {
-        tick_delay_time = 0;
+    //丝杆保护，防止力过大或过小
+    if (Sensor_force >= 1500.0f || Sensor_force <= 300.0f) {
         current_state_AUTO_ON=EMERGENCY_STATE_INDEX;
+        return;
     }
-    if (Sensor_force>=1500||Sensor_force<=300) {
-        current_state_AUTO_ON=EMERGENCY_STATE_INDEX;
-    }
-    if (abs(testtt) < 1.0f) {
-        // auto_shoot_cmd_send.Liyuu_speed =0;
-        // if (shoot_wait_start_flag) {
-        //     auto_shoot_delay_time = DWT_GetTimeline_ms();
-        //     shoot_wait_start_flag=0;
-        // }
-        // if (DWT_GetTimeline_ms() - auto_shoot_delay_time > AUTO_SHOOT_WAIT_MS && auto_shoot_delay_time!=0) {
-        //     if (abs(testtt) < 1.0f) {
-        //         shoot_wait_start_
-        //         flag=1;
-        //         auto_shoot_delay_time = 0;
-        tick_start_flag=1;
-        tick_delay_time=0;
+    //发射判断
+    if (fabsf(testtt) < 1.0f) {
         current_state_AUTO_ON=TRIGGER_ON_STATE_INDEX;
-        //     }
-        // }
     }
 }
+
+//扳机释放阶段
 void TRIGGER_ON_STATE(void) {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
     auto_shoot_cmd_send.Trigger_Location=-80.0f;
@@ -363,13 +351,13 @@ void TRIGGER_ON_STATE(void) {
     current_state_AUTO_ON=RELOAD_STATE_INDEX;
 }
 
+//暂时不动了，之后会换新的换弹结构
 void RELOAD_STATE(void) {
     if (reload_start_flag) {
         auto_shoot_delay_time = DWT_GetTimeline_ms();//todo:这里auto_shoot_delay_time与tick_delay_time重复了
         reload_start_flag=0;
     }  // 开始计时
     if (DWT_GetTimeline_ms() - auto_shoot_delay_time > AUTO_SHOOT_DELAY_MS && auto_shoot_delay_time!=0) {
-        // testtt = 1;
         auto_shoot_cmd_send.Trigger_Location=0.0f;
         auto_shoot_cmd_send.reload=!auto_shoot_cmd_send.reload;
         auto_shoot_delay_time = 0;  // 重置计时器
@@ -390,6 +378,8 @@ void RELOAD_STATE(void) {
 
     }
 }
+
+//间隔连发模式,平常测试用
 void WAIT_TRIGGER_STATE(void)
 {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
@@ -397,49 +387,19 @@ void WAIT_TRIGGER_STATE(void)
     auto_shoot_cmd_send.Trigger_Location = 0.0f;
     auto_gimbal_cmd_send.yaw_speed=0;
     cd_shoot=1;
-    // if (referee_info.DartControlData.dart_station_state==2) {
-    //     dart_door_flag=1;
-    //     if (tick_start_flag) {
-    //         tick_delay_time = DWT_GetTimeline_ms();//裁判
-    //         tick_start_flag=0;
-    //     }
-    // }
-    // if (dart_door_flag) {
-    //     //todo:把标志位规范一下，代码不同人写的，用了功能相同的两个标志位，简化为一个标志位
-    //     if (referee_info.DartControlData.dart_station_state==0)
-    //         dart_door_open_flag=1;
-    //     if (referee_info.DartControlData.dart_station_state==1)
-    //         dart_door_flag=0;
-    // }
-    //
-    // if (dart_door_open_flag) {
-    //     if (slaveRecInfo->Pixel_Error==-660) {
-    //         auto_gimbal_cmd_send.yaw_speed=-6000.0f;
-    //         cd_shoot=1;
-    //     }
-    //     else{
-    //         if (cd_shoot==1) {
-    //             cd_shoot=2;
-    //         }
-    //         auto_gimbal_cmd_send.yaw_speed = 0.0f;
-            if (global_map->auto_shoot_begin_flag == 1 || auto_shoot_cmd_flag) {
-                batch_darts_fired = 0;
-                global_map->auto_shoot_begin_flag = 0;
-                auto_shoot_cmd_flag = 0;
-             //    dart_door_open_flag=0;
-             // if (cd_shoot==2) {
-             //     std_energy_pos-=9500;
-             // }
-                // SLIDE_LENGTH=25.450f;
-                current_state_AUTO_ON = DEBUG_STATE_INDEX;
-            }
-    //     }
-    // }
+    if (auto_shoot_request_source != AUTO_SHOOT_REQUEST_NONE) {
+        batch_darts_fired = 0;
+        current_state_AUTO_ON = DEBUG_STATE_INDEX;
+    }
 }
 void EMERGENCY_STATE(void) {
     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
     auto_shoot_cmd_send.Stella_speed = 0.0f;
+    auto_shoot_request_source = AUTO_SHOOT_REQUEST_NONE;
+    global_map->auto_shoot_begin_flag = 0;
+    momokaSend_map->magnet_flag = 0;
 }
+
 static void (*auto_aim_state_table_AUTO_ON[])(void)={
     DEBUG_STATE,
     SLIP_DOWN_STATE,
@@ -456,24 +416,23 @@ void AUTO_OFF_FUNCTION(void) {
     auto_shoot_cmd_send.Trigger_Location = 0.0f;
     auto_gimbal_cmd_send.yaw_speed = 0.0f;
     auto_shoot_delay_time=0;
-    auto_shoot_cmd_flag=0;
+    auto_shoot_request_source = AUTO_SHOOT_REQUEST_NONE;
     reload_start_flag=1;
     momokaSend_map->ready_flag = 0;
     momokaSend_map->magnet_flag=0;
     momokaSend_map->OnLine = Auto_Off;
     global_map->auto_debug_mode = Debug_on;
     current_state_AUTO_ON = 0;
-    dart_number=4;
-    batch_darts_fired=0;
-    cd_shoot=0;
-    if (global_map->std_energy_pos_flag) {
-        std_energy_pos = Liyuu_map->measure.total_angle/50.0f;
-        global_map->std_energy_pos_flag = 0;
-    }
+    dart_number= 4;
+    batch_darts_fired= 0;
+    cd_shoot= 0;
+    static_enter_index = -1;
+
     if (shoot_cmd_recv.auto_mode==AUTO_ON) {
         current_state_MAIN=1;
     }
 }
+
 void AUTO_ON_FUNCTION(void) {
     momokaSend_map->OnLine = AUTO_ON;
 //     BuzzerPlaySequence(Auto_Off_beep, Auto_Off_beep,
@@ -489,12 +448,16 @@ void AUTO_ON_FUNCTION(void) {
     auto_gimbal_cmd_send.yaw_speed = 2.0f*aim_output;
     pos_shooter_output = PIDCalculate(&pos_shooter_pid , Liyuu_map->measure.total_angle/50.0f , std_energy_pos);
     force_shooter_output = PIDCalculate(&force_shooter_pid, (float)Sensor_force, (float)global_map->adv_force_set);
+
+    UpdateRemoteShootRequest();
+    UpdateRefereeShootRequest();
     // if (global_map->auto_shoot_wait_flag == 0 ){//|| abs(global_map->adv_force_set - momokaRec_map->Force_cur) > 2) {
     //     auto_shoot_cmd_send.Liyuu_speed = -pos_shooter_output*90.0f;
     //     // auto_shoot_cmd_send.Liyuu_speed = -(float)(global_map->adv_force_set - Sensor_force)*1440.0f;
     // }
 
     if (auto_aim_state_table_AUTO_ON[current_state_AUTO_ON] != NULL) {
+        state_enter_update();
         auto_aim_state_table_AUTO_ON[current_state_AUTO_ON]();
     }
 }
@@ -504,11 +467,7 @@ static void (*auto_aim_state_table_main[])(void)={AUTO_OFF_FUNCTION,AUTO_ON_FUNC
 static int d_Pixel_Error=0;
 static int sum_Pixel_Error=0;
 static int Pixel_Error_last=0;
-static float d_Distance_dart=0;
-static float Distance_dart=0;
-static float K_offset=0;
 static float force_dart_offset_ramdom=0;
-static int flag_114514=1;
 #define h_dart_2 625
 #define K_force_dart_distancetoforce 0.1
 #define pixel_to_x 0.005
@@ -531,25 +490,14 @@ int get_segment(int val) {//二分查找
 static volatile float adv_CMD_data[4];
 static volatile float CMD_Pixel_offset[4];
 
+static float F_nat = 883.0f;//测老化后控制预紧力情况下（未老化时的预紧力）滑台拉到底部皮筋的力
+static float F_nature[4] ={883.0f,883.0f,883.0f,883.0f};//这是皮筋在未老化之前命中目标的拉力
+static float F_target[4] ={0.0f};//(F_nat+F_nature)/2.0f
+
 void AutoAim_Task() {
     SubGetMessage(shoot_cmd_sub, &shoot_cmd_recv);
     testtt = Sensor_force - global_map->adv_force_set;
 
-
-    // d_Pixel_Error=slaveRecInfo->Pixel_Error-Pixel_Error_last;//用公式拟合，要标定的参数过多，舍弃
-    // sum_Pixel_Error+=d_Pixel_Error;
-    // K_offset=(pixel_to_x*sum_Pixel_Error)/sqrt((pixel_to_x*sum_Pixel_Error)*(pixel_to_x*sum_Pixel_Error)+h_dart_2);
-    // d_Distance_dart=K_offset*(pixel_to_x*sum_Pixel_Error);
-    // Distance_dart+=d_Distance_dart;
-    // force_dart_offset_ramdom=K_force_dart_distancetoforce*Distance_dart;
-    // if (force_dart_offset_ramdom>2)force_dart_offset_ramdom=2;
-    // if (force_dart_offset_ramdom<-2)force_dart_offset_ramdom=-2;
-    // Pixel_Error_last=slaveRecInfo->Pixel_Error;
-
-    // if (flag_114514) {
-    //     Pixel_Error_last=slaveRecInfo->Pixel_Error;
-    //     flag_114514=0;
-    // }
     d_Pixel_Error=slaveRecInfo->Pixel_Error-Pixel_Error_last;
     if (auto_gimbal_cmd_send.yaw_speed!=0) {
         sum_Pixel_Error+=d_Pixel_Error;
@@ -563,27 +511,34 @@ void AutoAim_Task() {
     Pixel_Error_last=slaveRecInfo->Pixel_Error;
 
 
+    for (int i = 0; i < 4; i++) {
+        F_target[i] = (F_nature[i] + F_nat) / 2.0f;
+    }
 
 //老标参数在注释
     switch (dart_order) {
         case 1:
             adv_CMD_data[0]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[0]+=(float)global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set =861.5+1.5+ adv_CMD_data[0];//883.0
+            global_map->adv_force_set =F_target[0] + adv_CMD_data[0];//883.0
             global_map->Pixel_offset = 40+(int)CMD_Pixel_offset[0];//130
             break;
+
         case 2:
             adv_CMD_data[1]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[1]+=(float)global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 862-0.5+ adv_CMD_data[1];//884
+            global_map->adv_force_set =F_target[1] + adv_CMD_data[1];//883.0
             global_map->Pixel_offset = 82+(int)CMD_Pixel_offset[1];//115
             break;
+
         case 3:
             adv_CMD_data[2]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[2]+=(float)global_map->CMD_dPixel_offset/10000.0f;
-            global_map->adv_force_set = 860.0+ adv_CMD_data[2];//879
+            // global_map->adv_force_set = 860.0+ adv_CMD_data[2];//879
+            global_map->adv_force_set =F_target[2] + adv_CMD_data[2];//883.0
             global_map->Pixel_offset = 53+(int)CMD_Pixel_offset[2];//84
             break;
+
         case 4:
             adv_CMD_data[3]+=global_map->adv_dCMD_data/10000.0f;
             CMD_Pixel_offset[3]+=(float)global_map->CMD_dPixel_offset/10000.0f;
@@ -592,11 +547,11 @@ void AutoAim_Task() {
                 global_map->Pixel_offset = -18-20+CMD_Pixel_offset[3];
             }
             if (cd_shoot==1) {
-                global_map->adv_force_set = 864.5+ adv_CMD_data[3];//879-3.0-3.0
+                global_map->adv_force_set =F_target[3] + adv_CMD_data[3];//883.0
                 global_map->Pixel_offset = 110+CMD_Pixel_offset[3];//98     74
             }//880  好879
 
-            break;
+        break;
         default:
             break;
     }
@@ -609,119 +564,6 @@ void AutoAim_Task() {
         auto_aim_state_table_main[LIMIT_ONE(current_state_MAIN)]();
     }
 
-
-    // switch (shoot_cmd_recv.auto_mode) {
-    //     case AUTO_OFF:
-    //         auto_shoot_cmd_send.Liyuu_speed = 0.0f;
-    //         auto_shoot_cmd_send.Stella_speed = 0.0f;
-    //         auto_shoot_cmd_send.Trigger_Location = 0.0f;
-    //         auto_gimbal_cmd_send.yaw_speed = 0.0f;
-    //         auto_shoot_delay_time=0;
-    //         momokaSend_map->ready_flag = 0;
-    //         momokaSend_map->OnLine = Auto_Off;
-    //         global_map->auto_debug_mode = Debug_on;
-    //
-    //         if (global_map->std_energy_pos_flag) {
-    //             std_energy_pos = Liyuu_map->measure.total_angle/50.0f;
-    //             global_map->std_energy_pos_flag = 0;
-    //         }
-    //         break;
-    //     case AUTO_ON:
-    //         momokaSend_map->OnLine = AUTO_ON;
-    //         BuzzerPlaySequence(Auto_Off_beep, Auto_Off_beep,
-    //     sizeof(Auto_Off_beep)/sizeof(Auto_Off_beep[0]),
-    //     ALARM_LEVEL_HIGH);
-    //         //yaw轴对准
-    //         aim_output = PIDCalculate(&autoaim_pid, (float)slaveRecInfo->Pixel_Error, 0.0f+(float)global_map->Pixel_offset);
-    //         auto_gimbal_cmd_send.yaw_speed = 3.0f*aim_output;
-    //         pos_shooter_output = PIDCalculate(&pos_shooter_pid , Liyuu_map->measure.total_angle/50.0f , std_energy_pos);
-    //         force_shooter_output = PIDCalculate(&force_shooter_pid, (float)Sensor_force, (float)global_map->adv_force_set);
-    //         // if (global_map->auto_shoot_wait_flag == 0 ){//|| abs(global_map->adv_force_set - momokaRec_map->Force_cur) > 2) {
-    //         //     auto_shoot_cmd_send.Liyuu_speed = -pos_shooter_output*90.0f;
-    //         //     // auto_shoot_cmd_send.Liyuu_speed = -(float)(global_map->adv_force_set - Sensor_force)*1440.0f;
-    //         // }
-    //         switch (global_map->auto_debug_mode) {
-    //             case Debug_on:
-    //                 auto_shoot_cmd_send.Stella_speed = 1.0f;
-    //                 auto_shoot_cmd_send.Liyuu_speed = pos_shooter_output*12.0f;
-    //                 if (momokaRec_map->slide_status == Slide_in_up ){//&& fabs(auto_shoot_cmd_send.Liyuu_speed - 0.0f) < 0.5f) {
-    //                     ori_angle = Stella_map->measure.total_angle;
-    //                     auto_shoot_cmd_send.Stella_speed = 0.0f;
-    //                 }
-    //                 if (momokaRec_map->slide_status == Slide_in_up && fabsf(pos_shooter_output - 0.0f) < 30.0f) {
-    //                     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
-    //                     global_map->auto_debug_mode = Debug_ready;
-    //                 }
-    //                 break;
-    //             case Debug_ready:
-    //                 break;
-    //         }
-    //         if (global_map->auto_shoot_begin_flag == 1 ) {  //TODO：自动发射检测逻辑（半成品，后续待改进,使用状态机）
-    //             if (global_map->auto_shoot_set_flag == 1 && global_map->auto_debug_mode == Debug_ready ){//&& fabs(global_map->adv_force_set - momokaRec_map->Force_cur) < 2) {  //触发拨轮开始信号
-    //                 // global_map->auto_shoot_wait_flag = 1;
-    //                 // auto_shoot_cmd_send.Liyuu_speed = 0.0f;
-    //                 global_map->auto_shoot_set_flag = 0;
-    //                 auto_shoot_cmd_send.Stella_speed = -9.0f;
-    //             }
-    //             else if (Stella_map->measure.total_angle - ori_angle < -SLIDE_LENGTH) {
-    //                 auto_shoot_cmd_send.Stella_speed = 11.0f;
-    //                 auto_shoot_cmd_send.Liyuu_speed = force_shooter_output*15.0f;
-    //                 global_map->auto_shoot_process_flag = 1;
-    //             }
-    //             else if (Stella_map->measure.total_angle - ori_angle > -0.25f && global_map->auto_shoot_process_flag == 1) {
-    //                 auto_shoot_cmd_send.Stella_speed = 0.0f;
-    //                 global_map->auto_shoot_process_flag = 0;
-    //                 global_map->auto_shoot_ready_flag = 1;
-    //             }
-    //         }
-    //         switch (global_map->auto_shoot_ready_flag) {
-    //             case 0:
-    //                 momokaSend_map->ready_flag = 0;
-    //                 if (global_map->auto_shoot_set_flag == 0 && global_map->auto_routine_end_flag == 1) {
-    //                     auto_shoot_cmd_send.Liyuu_speed = pos_shooter_output*18.0f;
-    //                 }
-    //                 if (fabsf(pos_shooter_output - 0.0f) < 30.0f && global_map->auto_shoot_wait_flag == 1) {
-    //                     global_map->auto_routine_end_flag = 0;
-    //                     global_map->auto_shoot_set_flag = 1;
-    //                     global_map->auto_shoot_wait_flag = 0;
-    //                 }
-    //                 break;
-    //             case 1:
-    //                 momokaSend_map->ready_flag = 1;
-    //                 // testtt++;
-    //                 // if (global_map->fuck_them_all) {
-    //                 if (abs(testtt - 0) < 2) {
-    //                     auto_shoot_cmd_send.Liyuu_speed = 0.0f;
-    //                     auto_shoot_cmd_send.Trigger_Location=-80.0f;
-    //                     global_map->auto_shoot_end_flag = 1;
-    //                 }
-    //                 else if (abs(testtt - 0) > 2 && global_map->auto_shoot_end_flag == 0){
-    //                     auto_shoot_cmd_send.Liyuu_speed = -force_shooter_output*15.0f;
-    //                 }
-    //                 if (auto_shoot_delay_time == 0 && global_map->auto_shoot_end_flag == 1) {
-    //                     auto_shoot_delay_time = DWT_GetTimeline_ms();;  // 开始计时
-    //                 }
-    //                 // }
-    //                 // 延迟足够后，自动进入下一次发射
-    //                 // if (global_map->auto_shoot_end_flag){
-    //                 if (DWT_GetTimeline_ms() - auto_shoot_delay_time > AUTO_SHOOT_DELAY_MS && auto_shoot_delay_time!=0) {
-    //                     // testtt = 1;
-    //                     auto_shoot_cmd_send.Trigger_Location=0.0f;
-    //                     global_map->auto_routine_end_flag = 1;
-    //                     global_map->auto_shoot_ready_flag = 0;
-    //                     global_map->auto_shoot_end_flag = 0;
-    //                     global_map->auto_shoot_wait_flag = 1;
-    //                     auto_shoot_cmd_send.reload=!auto_shoot_cmd_send.reload;
-    //                     auto_shoot_delay_time = 0;  // 重置计时器
-    //                 }
-    //                 break;
-    //             default:
-    //                 break;
-    //         }
-    //         break;
-    //     default:
-    //         break;
-    // }
     PubPushMessage(auto_gimbal_cmd_pub, (void *) &auto_gimbal_cmd_send);
     PubPushMessage(auto_shoot_cmd_pub, (void *) &auto_shoot_cmd_send);
 }

@@ -23,6 +23,7 @@ typedef struct {
     uint8_t auto_routine_end_flag;  //自动逻辑结束标志位
     Debug_mode auto_debug_mode;
 
+    float adv_force_preset;//镖架初始预紧力
     float adv_force_set; //镖镖预设发射拉力
     float adv_CMD_data;  //修改预设拉力值
     float adv_dCMD_data;

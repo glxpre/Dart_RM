@@ -18,9 +18,21 @@ typedef enum {
     EMERGENCY_STATE_INDEX,
 }STATE;
 
+//遥控类型
+typedef enum {
+    AUTO_SHOOT_REQUEST_NONE,
+    AUTO_SHOOT_REQUEST_REMOTE,
+    AUTO_SHOOT_REQUEST_REFEREE,
+} AutoShootRequestSource_e;
 
+//舱门状态
+typedef enum {
+    Dart_station_close,
+    Dart_station_open,
+    Dart_station_active_close2open,
+    Dart_station_active_open2close,
+}Dart_station_state_enum;
 
-Shoot_Ctrl_Cmd_s *get_auto_shoot_send(void);
 void AutoAim_Init();
 void AutoAim_Task();
 
