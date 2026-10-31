@@ -43,42 +43,6 @@ void *get_Stella() {
 }
 void ShootInit()
 {
-    // Motor_Init_Config_s Stella_config = {
-    //     .can_init_config = {
-    //         .can_handle = &hcan1,
-    //         .tx_id = 1
-    // },
-    // .controller_param_init_config = {
-    //         .angle_PID = {
-    //             // 如果启用位置环来控制发弹,需要较大的I值保证输出力矩的线性度否则出现接近拨出的力矩大幅下降
-    //             .Kp = 12.0f,//12.0f,
-    //             .Ki = 0.0f,
-    //             .Kd = 0.0f,
-    //             .DeadBand = 0.0f,
-    //             .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    //             .IntegralLimit = 500,
-    //             .MaxOut = 10000,
-    //         },
-    //     .speed_PID = {
-    //             .Kp = 1.8f,  //4000
-    //             .Ki = 0.0f, //100
-    //             .Kd = 0.0f, //0
-    //             .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-    //             .IntegralLimit = 10000,
-    //             .MaxOut = 10000,
-    //     },
-    // },
-    // .controller_setting_init_config = {
-    //         .angle_feedback_source = MOTOR_FEED,
-    //         .speed_feedback_source = MOTOR_FEED,
-    //         .outer_loop_type = SPEED_LOOP,
-    //         .close_loop_type = SPEED_LOOP | ANGLE_LOOP,
-    //         .motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
-    //         //.feedback_reverse_flag = FEEDBACK_DIRECTION_REVERSE,
-    // },
-    // .motor_type = M3508
-    // };
-    // Stella=DJIMotorInit(&Stella_config);
     Motor_Init_Config_s Stella_config = {
         .can_init_config = {
             .can_handle = &hcan1,

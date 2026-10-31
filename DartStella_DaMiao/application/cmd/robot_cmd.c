@@ -156,11 +156,14 @@ static void RemoteControlSet() {
             }
             else if ((-(float)rc_data[TEMP].rc.dial / 660)<0.2f)
                 reload_flag = 1;
+
             // 设定std_energy_pos
             if ((float) rc_data[TEMP].rc.rocker_l1 / 660 > 0.5f && std_set_flag) {
                 global_map->std_energy_pos_flag = 1;
                 std_set_flag = 0;
             }
+
+
             else if ((float) rc_data[TEMP].rc.rocker_l1 / 660 < 0.5f) {
                 std_set_flag = 1;
             }

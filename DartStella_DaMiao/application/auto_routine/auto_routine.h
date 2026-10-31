@@ -6,7 +6,6 @@
 #define AUTO_ROUTiNE_H
 #include "robot_def.h"
 
-
 typedef enum {
     DEBUG_STATE_INDEX,
     SLIP_DOWN_STATE_INDEX,

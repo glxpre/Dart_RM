@@ -63,14 +63,11 @@ static int reload_start_flag=1;
 
 static int tick_dart_station_state=1;
 static int cd_shoot=0;
-static int qwq_flag=1;
-static float pre_force_output_limit = 2.0f;
-static float pos_shooter_output_limit=30.0f;
-
 static int batch_darts_fired=0;
 static int batch_size=3;
-// static volatile int dart_door_flag = 0;
-// static int dart_door_open_flag=0;//todo:把标志位搞个结构体，分个类
+
+volatile float debug_stella_torque;
+
 BuzzzerInstance *Dart_buzzer;
 const Note_t Auto_Off_beep[] = {
     {NOTE_D5, 200},
@@ -473,7 +470,6 @@ static float force_dart_offset_ramdom=0;
 #define pixel_to_x 0.005
 #define K_dart_qujian_peishu 1.0f
 
-static int flag_dart_ramdom_offset=1;
 const int dichotomization[]={-1000,-100,-50,0,50,100,1000};
 int get_segment(int val) {//二分查找
     int n = sizeof(dichotomization)/sizeof(int);
@@ -495,6 +491,13 @@ static float F_nature[4] ={883.0f,883.0f,883.0f,883.0f};//这是皮筋在未老�
 static float F_target[4] ={0.0f};//(F_nat+F_nature)/2.0f
 
 void AutoAim_Task() {
+
+    if (global_map->std_energy_pos_flag) {
+        std_energy_pos = Liyuu_map->measure.total_angle / 50.0f;
+        global_map->std_energy_pos_flag = 0;
+    }
+
+    debug_stella_torque = Stella_map->measure.torque;
     SubGetMessage(shoot_cmd_sub, &shoot_cmd_recv);
     testtt = Sensor_force - global_map->adv_force_set;
 

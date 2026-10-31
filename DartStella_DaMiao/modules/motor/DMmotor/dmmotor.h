@@ -23,7 +23,7 @@ typedef struct
     float last_position;    //上次位置
     float position; //位置
     float torque;   //力矩
-    float T_Mos;    //mos温度
+    float T_Mos;    //m3os温度
     float T_Rotor; //电机温度
     float angle_single_round; //单圈角度
     int32_t total_round; //总圈数
