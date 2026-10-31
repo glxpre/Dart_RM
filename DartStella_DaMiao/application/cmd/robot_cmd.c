@@ -17,7 +17,7 @@
 #include "can_comm.h"
 #include "dmmotor.h"
 #include "referee_task.h"
-// #include "referee_VT.h"
+#include "shoot.h"
 
 #include "rm_referee.h"
 
@@ -60,6 +60,12 @@ static uint8_t std_set_flag = 1;
 
 extern float Sensor_force;
 static uint8_t testtt=0;
+static float stella_up_relative_angle;
+static float stella_down_relative_angle;
+static float stella_up_reference_angle;
+static float stella_down_reference_angle;
+static int slide_up_flag = 0;
+static int slide_down_flag = 0;
 
 void *get_rcdata(void) {
     return rc_data;
@@ -97,6 +103,7 @@ void RobotCMDInit() {
  *
  */
 static void RemoteControlSet() {
+    DMMotorInstance *stella =(DMMotorInstance *)get_Stella();
    // 控制底盘和云台运行模式,云台待添加,云台是否始终使用IMU数据
     if (switch_is_up(rc_data[TEMP].rc.switch_right))  // 右侧开关状态[上],用于自动发射
     {
@@ -130,17 +137,51 @@ static void RemoteControlSet() {
         //检测拉力值是否进入范围
 
         // uartcommSendData((uint8_t *)&momokaSendInfo);
-    }// 右侧开关状态[上]
+    }
     else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中]，手动模式
     {
         reset_global();
         shoot_cmd_send.auto_mode = AUTO_OFF;
         gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
         // 云台参数,确定云台控制数据
+        //左侧开关向上
+        if (switch_is_up(rc_data[TEMP].rc.switch_left))
+        {
+            if ((float)rc_data[TEMP].rc.rocker_l1 / 660>0.5f)
+            {
+                stella_up_reference_angle = stella->measure.total_angle;
+                slide_up_flag = 1;
+            }
+            if ((float)rc_data[TEMP].rc.rocker_l1 / 660<-0.5f)
+            {
+                stella_down_reference_angle = stella->measure.total_angle;
+                slide_down_flag = 1;
+            }
+            if (fabs((float)rc_data[TEMP].rc.rocker_r1/660) >=0.5f)
+            {
+                stella_up_reference_angle = 0.0f;
+                stella_down_reference_angle = 0.0f;
+                slide_up_flag = 0;
+                slide_down_flag = 0;
+            }
+
+        }
+
         // 左侧开关状态为[中]
         if (switch_is_mid(rc_data[TEMP].rc.switch_left))
         {
             shoot_cmd_send.Stella_speed = 30.0f * ((float) rc_data[TEMP].rc.rocker_l1 / 660);
+            stella_up_relative_angle =stella->measure.total_angle - stella_up_reference_angle;
+            stella_down_relative_angle = stella->measure.total_angle-stella_down_reference_angle ;
+            if (stella_up_relative_angle>=0.2f&&shoot_cmd_send.Stella_speed>0.0f&&slide_up_flag)
+            {
+                shoot_cmd_send.Stella_speed=0.0f;
+            }
+            if (stella_down_relative_angle<=0.05f&&shoot_cmd_send.Stella_speed<0.0f&&slide_down_flag)
+            {
+                shoot_cmd_send.Stella_speed=0.0f;
+            }
+
             shoot_cmd_send.Liyuu_speed= 70000.0f * ((float) rc_data[TEMP].rc.rocker_r1 / 660);
             shoot_cmd_send.Trigger_Location=-(-(float)rc_data[TEMP].rc.dial / 660)*80.0f;
 
@@ -171,8 +212,7 @@ static void RemoteControlSet() {
                 global_map->clear_sum_pixel_error_flag = 1;
             }
         }
-        // uartcommSendData((uint8_t *)&momokaSendInfo);
-    }//右侧开关为中
+    }
 
     else if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[下]，修改发射时拉力
     {
@@ -235,6 +275,7 @@ void RobotCMDTask() {
     //SubGetMessage(shoot_feed_sub, &shoot_fetch_data);
     //SubGetMessage(gimbal_feed_sub, &gimbal_fetch_data);
     //update_ui_data();
+
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
     if (robot_state != ROBOT_STOP ){
         //todo:暂时为全遥控器控制，之后会加入自定义模式

@@ -496,8 +496,6 @@ void AutoAim_Task() {
         std_energy_pos = Liyuu_map->measure.total_angle / 50.0f;
         global_map->std_energy_pos_flag = 0;
     }
-
-    debug_stella_torque = Stella_map->measure.torque;
     SubGetMessage(shoot_cmd_sub, &shoot_cmd_recv);
     testtt = Sensor_force - global_map->adv_force_set;
 
