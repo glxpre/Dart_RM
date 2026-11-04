@@ -66,6 +66,8 @@ static int cd_shoot=0;
 static int batch_darts_fired=0;
 static int batch_size=3;
 
+static attitude_t *imu_data;
+
 volatile float debug_stella_torque;
 
 BuzzzerInstance *Dart_buzzer;
@@ -82,7 +84,6 @@ const Note_t Auto_Off_beep[] = {
 };
 static float state_enter_tick;
 static int static_enter_index=-1;
-static uint8_t state_enter_dirty = 1;
 
 static uint8_t state_enter_update()
 {
@@ -105,6 +106,7 @@ static float state_elapsed_ms()
     return t;
 }
 void AutoAim_Init() {
+    imu_data = INS_Init();
     global_map = get_global();
     slaveRecInfo = get_slaveRec();
     momokaRec_map = get_momokaRec();
@@ -491,6 +493,9 @@ static float F_nature[4] ={883.0f,883.0f,883.0f,883.0f};//这是皮筋在未老�
 static float F_target[4] ={0.0f};//(F_nat+F_nature)/2.0f
 
 void AutoAim_Task() {
+
+    float roll = imu_data->Roll;
+    float pitch = imu_data->Pitch;
 
     if (global_map->std_energy_pos_flag) {
         std_energy_pos = Liyuu_map->measure.total_angle / 50.0f;

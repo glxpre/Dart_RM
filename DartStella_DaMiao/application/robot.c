@@ -53,6 +53,8 @@ void RobotInit()
     memset(&global , 0 , sizeof(global_struct));
 
 #if defined(ONE_BOARD) || defined(GIMBAL_BOARD)
+    // INS_Init();
+
     RobotCMDInit();
     GimbalInit();
     ShootInit();

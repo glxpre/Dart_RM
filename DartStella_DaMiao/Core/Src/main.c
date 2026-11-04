@@ -141,6 +141,7 @@ int main(void)
   MX_UART8_Init();
   MX_UART5_Init();
   MX_I2C1_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
   // HAL_ADCEx_Calibration_Start(&hadc1,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);
