@@ -292,7 +292,7 @@ void RobotCMDTask() {
         //          switch_is_up(rc_data[TEMP].rc.switch_right)) // 遥控器左侧开关状态为[上],键盘控制，遥控器右侧开关状态为[上],图传链路通道
         //     VTRemoteControlSet();
     }
-
+    gimbal_cmd_send.roll_comp_request =(robot_state != ROBOT_STOP &&switch_is_up(rc_data[TEMP].rc.switch_left)) ? 1 : 0;
 #ifdef GIMBAL_BOARD
     CANCommSend(cmd_can_comm, (void *)&chassis_cmd_send);
 #endif // GIMBAL_BOARD

@@ -234,6 +234,7 @@ typedef struct
 
     float auto_aim_mode;
     gimbal_mode_e gimbal_mode;
+    uint8_t roll_comp_request;  // 1：左拨杆在上；0：不在上
 } Gimbal_Ctrl_Cmd_s;
 
 // cmd发布的发射控制数据,由shoot订阅

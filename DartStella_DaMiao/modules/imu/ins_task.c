@@ -101,15 +101,16 @@ attitude_t *INS_Init(void)
     float init_quaternion[4] = {0};
     InitQuaternion(init_quaternion);
     IMU_QuaternionEKF_Init(init_quaternion, 10, 0.001, 1000000, 1, 0);
-    // imu heat init
-    PID_Init_Config_s config = {.MaxOut = 2000,
-            .IntegralLimit = 300,
-            .DeadBand = 0,
-            .Kp = 1000,
-            .Ki = 20,
-            .Kd = 0,
-            .Improve = 0x01}; // enable integratiaon limit
-    PIDInit(&TempCtrl, &config);
+
+    // imu heat init 这里把温控关了防止烧板
+    // PID_Init_Config_s config = {.MaxOut = 2000,
+    //         .IntegralLimit = 300,
+    //         .DeadBand = 0,
+    //         .Kp = 1000,
+    //         .Ki = 20,
+    //         .Kd = 0,
+    //         .Improve = 0x01}; // enable integratiaon limit
+    // PIDInit(&TempCtrl, &config);
 
     // noise of accel is relatively big and of high freq,thus lpf is used
     INS.AccelLPF = 0.0085;
