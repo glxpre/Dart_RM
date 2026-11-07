@@ -86,7 +86,7 @@ attitude_t *INS_Init(void)
     else
         return (attitude_t *)&INS.Gyro;
 
-    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+    // HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
     LOGINFO("[imu] init");
     while (BMI088Init(&hspi2, 1) != BMI088_NO_ERROR)
         ;
@@ -102,7 +102,7 @@ attitude_t *INS_Init(void)
     InitQuaternion(init_quaternion);
     IMU_QuaternionEKF_Init(init_quaternion, 10, 0.001, 1000000, 1, 0);
 
-    // imu heat init 这里把温控关了防止烧板
+    // imu heat init
     // PID_Init_Config_s config = {.MaxOut = 2000,
     //         .IntegralLimit = 300,
     //         .DeadBand = 0,
@@ -180,7 +180,7 @@ void INS_Task(void)
     if ((count % 2) == 0)
     {
         // 500hz
-        IMU_Temperature_Ctrl();
+        // IMU_Temperature_Ctrl();
     }
 
     if ((count++ % 1000) == 0)
