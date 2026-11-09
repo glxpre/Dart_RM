@@ -147,6 +147,10 @@ static void RemoteControlSet() {
         //左侧开关向上
         if (switch_is_up(rc_data[TEMP].rc.switch_left))
         {
+            if ((-(float)rc_data[TEMP].rc.dial / 660)>0.2f&&reload_flag)
+            {
+                gimbal_cmd_send.roll_comp_request = 1;
+            }
             if ((float)rc_data[TEMP].rc.rocker_l1 / 660>0.5f)
             {
                 stella_up_reference_angle = stella->measure.total_angle;
@@ -188,6 +192,7 @@ static void RemoteControlSet() {
         }
         // 左侧开关状态为[下]
         if (switch_is_down(rc_data[TEMP].rc.switch_left)) {
+            gimbal_cmd_send.shoudong = 1;
             gimbal_cmd_send.yaw_speed = -30000.0f * ((float) rc_data[TEMP].rc.rocker_l_/660);//todo：确认参数
 
             //换弹逻辑
@@ -275,7 +280,9 @@ void RobotCMDTask() {
     //SubGetMessage(shoot_feed_sub, &shoot_fetch_data);
     //SubGetMessage(gimbal_feed_sub, &gimbal_fetch_data);
     //update_ui_data();
-
+    // 每个周期重新根据遥控器状态生成命令
+    gimbal_cmd_send.roll_comp_request = 0;
+    gimbal_cmd_send.shoudong = 0;
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
     if (robot_state != ROBOT_STOP ){
         //todo:暂时为全遥控器控制，之后会加入自定义模式
@@ -292,7 +299,7 @@ void RobotCMDTask() {
         //          switch_is_up(rc_data[TEMP].rc.switch_right)) // 遥控器左侧开关状态为[上],键盘控制，遥控器右侧开关状态为[上],图传链路通道
         //     VTRemoteControlSet();
     }
-    gimbal_cmd_send.roll_comp_request =(robot_state != ROBOT_STOP &&switch_is_up(rc_data[TEMP].rc.switch_left)) ? 1 : 0;
+    // gimbal_cmd_send.roll_comp_request =(robot_state != ROBOT_STOP &&switch_is_up(rc_data[TEMP].rc.switch_left)) ? 1 : 0;
 #ifdef GIMBAL_BOARD
     CANCommSend(cmd_can_comm, (void *)&chassis_cmd_send);
 #endif // GIMBAL_BOARD

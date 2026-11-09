@@ -8,7 +8,7 @@
 #include "dmmotor.h"
 
 #define DEG_TO_RAD (PI / 180.0f)
-
+#define K_YAW_MOTOR_DEG_PER_IMU_DEG 30937.0f // 本次采样拟合的电机角度/IMU yaw 度数
 static attitude_t *gimba_IMU_data; // 云台IMU数据
 static DJIMotorInstance *yaw_motor, *pitch_motor;
 
@@ -32,12 +32,13 @@ static RollCompState_e roll_comp_state = ROLL_COMP_IDLE;
 
 static uint8_t last_roll_comp_request = 0;
 
-static float roll_target_deg = 0.0f;  // 先通过实际校准确定
+static float roll_target_deg = 0.95f;  // 先通过实际校准确定
 static float pitch_deg = 33.0f;
 static float motor_target_deg;
-static float motor_tolerance_deg = 2.0f;
+static float motor_tolerance_deg = 1.0f;
 static float motor_origin_deg;
-
+static float debuge_yaw_offset;
+static float yaw_offset_deg=0;
 // static float roll_comp_start_ms;//暂时不要
 void *get_yaw() {
     return yaw_motor;
@@ -58,10 +59,11 @@ static void RollCompensationStart(void)
 
     float yaw_offset_rad =
         atanf(tanf(roll_diff_rad) * tanf(pitch_rad));
-    float yaw_offset_deg = yaw_offset_rad / DEG_TO_RAD;
+    yaw_offset_deg = yaw_offset_rad / DEG_TO_RAD;
 
-    motor_target_deg = motor_origin_deg +yaw_offset_deg*36.0f;//M2006电机减速比
-
+    motor_target_deg = motor_origin_deg +
+                       yaw_offset_deg * K_YAW_MOTOR_DEG_PER_IMU_DEG;
+    // motor_target_deg = debuge_yaw_offset +15000;
     // roll_comp_start_ms = DWT_GetTimeline_ms();
     roll_comp_state = ROLL_COMP_MOVING;
 }
@@ -139,7 +141,7 @@ void GimbalTask()
     // 后续增加未收到数据的处理
     SubGetMessage(gimbal_sub, &gimbal_cmd_recv);
     SubGetMessage(auto_gimbal_sub , &auto_gimbal_cmd_recv);
-
+//进行roll角度补偿
     if (gimbal_cmd_recv.roll_comp_request && !last_roll_comp_request && roll_comp_state != ROLL_COMP_MOVING
         &&gimbal_cmd_recv.gimbal_mode != GIMBAL_ZERO_FORCE)
     {
@@ -147,7 +149,7 @@ void GimbalTask()
     }
 
     last_roll_comp_request = gimbal_cmd_recv.roll_comp_request;
-
+//把急停置为首要
     if (gimbal_cmd_recv.gimbal_mode == GIMBAL_ZERO_FORCE) {
         DJIMotorStop(yaw_motor);
 
@@ -155,8 +157,19 @@ void GimbalTask()
             roll_comp_state = ROLL_COMP_FAILED;
         }
     }
+//将手动优先级设高
+    if (gimbal_cmd_recv.shoudong) {
+        if (roll_comp_state == ROLL_COMP_MOVING) {
+            roll_comp_state = ROLL_COMP_FAILED;
+        }
 
-    if (roll_comp_state == ROLL_COMP_MOVING)
+        DJIMotorEnable(yaw_motor);
+        DJIMotorOuterLoop(yaw_motor, SPEED_LOOP);
+        DJIMotorSetRef(yaw_motor, gimbal_cmd_recv.yaw_speed);
+        gimbal_cmd_recv.shoudong = 0;
+    }
+//之后再控制
+    else if (roll_comp_state == ROLL_COMP_MOVING)
     {
         DJIMotorEnable(yaw_motor);
         DJIMotorOuterLoop(yaw_motor, ANGLE_LOOP);
